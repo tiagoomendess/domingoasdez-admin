@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
 	import './layout.css';
 
@@ -16,7 +15,11 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href={favicon} />
+	<!-- Same icons as the public site (domingoasdez-app). -->
+	<link rel="icon" href="/favicon.ico" sizes="any" />
+	<link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+	<link rel="icon" href="/favicon-48x48.png" type="image/png" sizes="48x48" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
 </svelte:head>
 
 {@render children()}

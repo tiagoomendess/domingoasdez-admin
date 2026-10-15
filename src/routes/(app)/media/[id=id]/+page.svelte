@@ -64,7 +64,8 @@
 	<Alert color="blue" class="mb-6">{m.media_not_owner()}</Alert>
 {/if}
 
-<div class="grid gap-6 xl:grid-cols-3">
+<!-- items-start: a stretched preview card would run under the save bar of the form beside it. -->
+<div class="grid items-start gap-6 xl:grid-cols-3">
 	<Card size="xl" class="p-4 xl:col-span-2">
 		<div
 			class="flex min-h-64 items-center justify-center overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-900"
