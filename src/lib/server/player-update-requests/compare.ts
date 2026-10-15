@@ -25,7 +25,8 @@ export type RequestField = (typeof REQUEST_FIELDS)[number];
 
 /** `club_name` values that mean "leaves the club". */
 export const NO_CLUB = ['no_club', 'none'];
-export const isNoClub = (clubName: string | null) => clubName !== null && NO_CLUB.includes(clubName);
+export const isNoClub = (clubName: string | null) =>
+	clubName !== null && NO_CLUB.includes(clubName);
 
 export type RequestValues = {
 	playerId: number | null;
