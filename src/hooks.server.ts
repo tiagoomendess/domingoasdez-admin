@@ -3,6 +3,7 @@ import { sequence, type Handle, type HandleServerError } from '@sveltejs/kit/hoo
 import { getTextDirection } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
 import { loginUrl } from '#lib/server/auth/redirect.ts';
+import { optOutOfRocketLoader } from '#lib/server/cloudflare.ts';
 import {
 	endSession,
 	readSession,
@@ -20,10 +21,12 @@ const handleLocale: Handle = ({ event, resolve }) =>
 			{ ...event, request },
 			{
 				transformPageChunk: ({ html }) =>
-					html
-						.replace('%paraglide.lang%', locale)
-						.replace('%paraglide.dir%', getTextDirection(locale))
-						.replace('%theme.class%', event.cookies.get('theme') === 'dark' ? 'dark' : '')
+					optOutOfRocketLoader(
+						html
+							.replace('%paraglide.lang%', locale)
+							.replace('%paraglide.dir%', getTextDirection(locale))
+							.replace('%theme.class%', event.cookies.get('theme') === 'dark' ? 'dark' : '')
+					)
 			}
 		)
 	);
