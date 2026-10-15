@@ -1,0 +1,35 @@
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# Tests
+test-results
+playwright-report
+coverage
+
+# Paraglide (compiled by `npm run prepare` and the Vite plugin)
+src/lib/paraglide
+project.inlang/cache/
+
+# `npm run db:pull` introspection output (reference only, never migrated)
+/drizzle

@@ -1,0 +1,37 @@
+@import 'tailwindcss';
+@plugin 'flowbite/plugin';
+@plugin '@tailwindcss/typography';
+
+/* Dark mode follows the `dark` class on <html> (set from the theme cookie / OS preference). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Flowbite Svelte ships Tailwind classes inside its components. */
+@source '../../node_modules/flowbite-svelte/dist';
+@source '../../node_modules/flowbite-svelte-icons/dist';
+
+@theme {
+	/*
+	 * Primary = the legacy backoffice blue (Materialize "blue darken-2", #1976d2) as shade 700,
+	 * which is what Flowbite uses for primary buttons and links.
+	 */
+	--color-primary-50: #e3f2fd;
+	--color-primary-100: #bbdefb;
+	--color-primary-200: #90caf9;
+	--color-primary-300: #64b5f6;
+	--color-primary-400: #42a5f5;
+	--color-primary-500: #2196f3;
+	--color-primary-600: #1e88e5;
+	--color-primary-700: #1976d2;
+	--color-primary-800: #1565c0;
+	--color-primary-900: #0d47a1;
+	--color-primary-950: #082f6b;
+}
+
+@layer base {
+	html {
+		color-scheme: light;
+	}
+	html.dark {
+		color-scheme: dark;
+	}
+}
