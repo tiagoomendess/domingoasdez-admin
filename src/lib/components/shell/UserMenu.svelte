@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Avatar, Dropdown, DropdownGroup, DropdownHeader, DropdownItem } from 'flowbite-svelte';
+	import { Dropdown, DropdownGroup, DropdownHeader, DropdownItem } from 'flowbite-svelte';
 	import { ArrowRightToBracketOutline, ArrowUpRightFromSquareOutline } from 'flowbite-svelte-icons';
 	import { PUBLIC_FRONTEND_URL } from '$app/env/public';
 	import type { AdminUser } from '#lib/auth/user.ts';
@@ -14,7 +14,15 @@
 	class="rounded-full focus:ring-4 focus:ring-white/40 focus:outline-none"
 	aria-label={m.user_menu_open()}
 >
-	<Avatar src={user.picture} alt="" size="sm" />
+	<!-- Plain <img>: Flowbite Avatar spreads props onto it, so SSR adds inline onload/onerror
+	     replay handlers that the CSP blocks. The server already falls back to a default picture. -->
+	<img
+		src={user.picture}
+		alt=""
+		class="size-8 rounded-full bg-gray-100 object-cover dark:bg-gray-600"
+		width="32"
+		height="32"
+	/>
 </button>
 
 <Dropdown triggeredBy="#user-menu-button" placement="bottom-end" class="w-60">

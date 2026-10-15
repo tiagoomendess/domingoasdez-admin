@@ -23,7 +23,7 @@
 		label: string;
 		/** Stored value. After a rejected submission the submitted text is shown instead. */
 		value?: string | number | null;
-		type?: 'text' | 'email' | 'url' | 'number' | 'date' | 'tel';
+		type?: 'text' | 'email' | 'url' | 'number' | 'date' | 'datetime-local' | 'tel';
 		hint?: string;
 		required?: boolean;
 		maxlength?: number;

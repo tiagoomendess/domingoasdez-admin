@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { ChevronDownOutline } from 'flowbite-svelte-icons';
 	import { slide } from 'svelte/transition';
-	import { resolve } from '$app/paths';
-	import type { Path } from '$app/types';
+	import { resolvePath } from '#lib/paths.ts';
 	import type { AdminUser } from '#lib/auth/user.ts';
 	import {
 		dashboardIcon as DashboardIcon,
@@ -84,7 +83,7 @@
 
 	<nav class="flex-1 overflow-y-auto px-3 py-4" aria-label="Menu">
 		<a
-			href={resolve(dashboardItem.href as Path)}
+			href={resolvePath(dashboardItem.href)}
 			class={linkClass(isActive(pathname, dashboardItem.href))}
 			aria-current={isActive(pathname, dashboardItem.href) ? 'page' : undefined}
 		>
@@ -119,7 +118,7 @@
 								{@const active = isActive(pathname, item.href)}
 								<li>
 									<a
-										href={resolve(item.href as Path)}
+										href={resolvePath(item.href)}
 										class={linkClass(active)}
 										aria-current={active ? 'page' : undefined}
 									>

@@ -1,4 +1,5 @@
-import { eq, like, or, sql, type SQL } from 'drizzle-orm';
+import { asc, desc, eq, like, or, sql, type SQL } from 'drizzle-orm';
+import type { Option } from '#lib/options.ts';
 import { emblemUrl } from '#lib/server/clubs/index.ts';
 import { db } from '#lib/server/db/index.ts';
 import { clubs, games, players, teams } from '#lib/server/db/schema.ts';
@@ -8,8 +9,10 @@ import {
 	orderBy,
 	pageOffset,
 	parseListParams,
+	relevance,
 	searchId
 } from '#lib/server/list.ts';
+import type { OptionsQuery } from '#lib/server/options.ts';
 
 export type Team = typeof teams.$inferSelect;
 
@@ -80,4 +83,55 @@ export async function teamUsage(id: number) {
 		db.$count(players, eq(players.teamId, id))
 	]);
 	return { games: gameCount, players: playerCount };
+}
+
+export async function teamExists(id: number): Promise<boolean> {
+	return (await db.$count(teams, eq(teams.id, id))) > 0;
+}
+
+type TeamOptionRow = { id: number; name: string; clubName: string; clubEmblem: string | null };
+
+/** "Club · Team": team names repeat across clubs (Seniores, Veteranos, …). */
+export function teamOption(team: TeamOptionRow): Option {
+	return {
+		value: team.id,
+		label: `${team.clubName} · ${team.name}`,
+		image: emblemUrl(team.clubEmblem)
+	};
+}
+
+const teamOptionColumns = {
+	id: teams.id,
+	name: teams.name,
+	clubName: clubs.name,
+	clubEmblem: clubs.emblem
+};
+
+export async function findTeamOption(id: number | null | undefined): Promise<Option | null> {
+	if (!id) return null;
+	const [team] = await db
+		.select(teamOptionColumns)
+		.from(teams)
+		.innerJoin(clubs, eq(clubs.id, teams.clubId))
+		.where(eq(teams.id, id))
+		.limit(1);
+	return team ? teamOption(team) : null;
+}
+
+/** Options of the team select: by club or team name, best club matches first, then by priority. */
+export async function searchTeamOptions({ q, limit, offset }: OptionsQuery) {
+	return db
+		.select(teamOptionColumns)
+		.from(teams)
+		.innerJoin(clubs, eq(clubs.id, teams.clubId))
+		.where(searchWhere(q))
+		.orderBy(
+			...(q ? [relevance(clubs.name, q)] : []),
+			desc(clubs.priority),
+			asc(clubs.name),
+			asc(teams.name),
+			asc(teams.id)
+		)
+		.limit(limit)
+		.offset(offset);
 }

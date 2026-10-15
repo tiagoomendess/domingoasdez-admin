@@ -54,7 +54,9 @@ migrate`; those scripts were removed on purpose. After a Laravel migration, run
 - Laravel runs in UTC and stores naive datetimes. The pool uses `dateStrings: true` +
   `timezone: 'Z'`, so instants come back as UTC `Date`s. Convert to the admin's timezone only in
   the UI (`timezone` cookie, defaults to `Europe/Lisbon`). Calendar dates (`clubs.founding_date`,
-  `players.birth_date`) are strings, never `Date`s.
+  `players.birth_date`) are strings, never `Date`s. Date-time inputs (polls) are
+  `type="datetime-local"`: the server reads them in the admin's timezone
+  (`adminTimeZone(cookies)`, `fromLocalInput()` / `toLocalInput()` in `#lib/datetime.ts`).
 - `POINT` columns (`playgrounds.location`, `score_reports.location`) use the `latLngPoint` type.
   The legacy convention is `POINT(lat lng)` with SRID 0: **X is the latitude**.
 - Relations for `db.query.*` live in `db/relations.ts`.
@@ -113,7 +115,9 @@ one place. Passwords and tokens are stripped. Updates that change nothing are no
 - Primary colour is the legacy blue (`#1976d2` = `primary-700`).
 - All user-facing text goes through Paraglide (`m.key()` from `#lib/paraglide/messages.js`);
   add keys to both `messages/pt-PT.json` and `messages/en.json`.
-- Internal links use `resolve()` from `$app/paths` (enforced by ESLint).
+- Internal links use `resolve()` from `$app/paths` (enforced by ESLint); for paths built at
+  runtime (navigation entries, links to sections not ported yet) use `resolvePath()` from
+  `#lib/paths.ts`.
 - Imports from `src/lib` use the `#lib/...ts` alias with explicit extensions.
 
 ### Section building blocks
@@ -133,8 +137,9 @@ Clubs (`/clubs`) and Teams (`/teams`) are the reference sections: copy their sha
   (`requiredText`, `optionalEmail`, `optionalUrl`, `optionalFile`, `requiredId`, …) are in
   `#lib/server/validation.ts`. Actions return `invalid(errors, values)` and redirect on success
   after `setFlash()` (toast shown by the layout). `EntityForm` (enhance, error summary, sticky
-  save bar, read-only mode) passes failures to `TextField` / `ToggleField` / `ImageField` /
-  `FormField` by field `name`. `DeleteButton` confirms in a modal and posts `?/delete` (keep it
+  save bar, read-only mode) passes failures to `TextField` / `TextareaField` / `ToggleField` /
+  `ImageField` / `SelectField` (short fixed lists such as enum columns) / `FormField` by field
+  `name`. `DeleteButton` confirms in a modal and posts `?/delete` (keep it
   outside the entity form).
 - Writes skip unchanged columns (`changedColumns()`), like Eloquent, so a no-op save neither
   touches `updated_at` nor logs an audit row. Deletes blocked by a foreign key return
@@ -143,6 +148,13 @@ Clubs (`/clubs`) and Teams (`/teams`) are the reference sections: copy their sha
   format read from the bytes) plus a `media` library row with thumbnail (`insertImageMedia()`).
   A replaced file is deleted only when nothing else uses it (legacy uploads always have a
   `media` row, so those stay).
+- Rich text (articles; reuse for pages): `RichTextField` mounts Tiptap (`#lib/editor/extensions.ts`,
+  which keeps legacy markup such as image styles and `<video>`) and posts the HTML in a hidden
+  input; it has an HTML source mode and, with `uploadUrl={resolve('/api/editor/images')}`
+  (`media` permission), an image upload button that adds to the media library. On the server,
+  `#lib/server/rich-text.ts`: `editorHtml()` turns stored `/storage/...` paths into loadable URLs
+  for the editor, `storedHtml()` does the reverse and sanitises with the public app's DOMPurify
+  rules (the legacy site renders bodies unescaped), `isBlankHtml()` for "required".
 
 ### Searchable dropdowns
 
@@ -171,7 +183,7 @@ never from the browser. Store with `latLngPoint` (`POINT(lat lng)`).
 
 - CSP (in `vite.config.ts`), `X-Frame-Options: DENY`, `nosniff`, strict referrer policy,
   `noindex` (header, meta and `robots.txt`), `Cache-Control: private, no-store` for signed-in
-  responses.
+  responses. The only third-party frame allowed is `youtube-nocookie.com` (dashboard tutorials).
 - SvelteKit's CSRF origin check is on (production builds); logout is POST-only.
 - HTML from articles/pages is admin-authored but must still be sanitised before rendering in the
   admin (e.g. `isomorphic-dompurify`, as `domingoasdez-app` does).
@@ -202,7 +214,7 @@ create/edit forms and delete, guarded by its permissions and audited.
 | Pessoas     | `/player-update-requests` | `player_update_requests`                                  | `player_update_requests` | Approve / deny flow                                                                                                                              |
 | Pessoas     | `/team-agents`            | `team_agents`, `team_agents_history`                      | `team_agents`            |                                                                                                                                                  |
 | Pessoas     | `/referees`               | `referees`                                                | `referees`               |                                                                                                                                                  |
-| Pessoas     | `/users`                  | `users`, `user_profiles`, `user_permissions`, `user_bans` | `users`, `permissions`   | Grant/revoke permissions, ban/pardon                                                                                                             |
+| Pessoas     | `/users`                  | `users`, `user_profiles`, `user_permissions`, `user_bans` | `users`, `permissions`   | Grant/revoke permissions, ban/pardon; `?has_permissions=1` filter (dashboard link)                                                               |
 | Pessoas     | `/score-report-bans`      | `score_report_bans`                                       | `score-report-bans`      |                                                                                                                                                  |
 | Competições | `/competitions`           | `competitions`                                            | `competitions`           | Priority order                                                                                                                                   |
 | Competições | `/seasons`                | `seasons`                                                 | `seasons`                |                                                                                                                                                  |

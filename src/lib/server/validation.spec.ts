@@ -12,7 +12,8 @@ import {
 	optionalUrl,
 	required,
 	requiredId,
-	requiredText
+	requiredText,
+	requiredUrl
 } from './validation';
 
 /** First error message, translated like `parseForm` does (base locale: pt-PT). */
@@ -41,6 +42,17 @@ describe('optionalEmail', () => {
 		expect(optionalEmail(155).parse('geral@clube.pt')).toBe('geral@clube.pt');
 		expect(optionalEmail(155).parse('')).toBeNull();
 		expect(errorOf(optionalEmail(155), 'geral@')).toBe('Endereço de email inválido.');
+	});
+});
+
+describe('requiredUrl', () => {
+	it('requires an http(s) link', () => {
+		expect(requiredUrl(150).parse(' https://parceiro.pt ')).toBe('https://parceiro.pt');
+		expect(errorOf(requiredUrl(150), '')).toBe('Campo obrigatório.');
+		expect(errorOf(requiredUrl(150), 'javascript:alert(1)')).toBe(m.validation_url());
+		expect(errorOf(requiredUrl(20), 'https://parceiro.pt/promocao')).toBe(
+			'Máximo de 20 caracteres.'
+		);
 	});
 });
 

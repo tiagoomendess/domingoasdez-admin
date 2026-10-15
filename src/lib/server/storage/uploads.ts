@@ -23,6 +23,21 @@ export async function detectImageFormat(data: Uint8Array): Promise<ImageFormat |
 	}
 }
 
+/**
+ * Reads an uploaded picture and checks its real format against `formats` (never the browser's
+ * MIME type). Null when it is something else.
+ */
+export async function readUploadedImage<Format extends ImageFormat>(
+	file: File,
+	formats: readonly Format[]
+): Promise<{ bytes: Uint8Array; format: Format } | null> {
+	const bytes = new Uint8Array(await file.arrayBuffer());
+	const format = await detectImageFormat(bytes);
+	return format && (formats as readonly ImageFormat[]).includes(format)
+		? { bytes, format: format as Format }
+		: null;
+}
+
 export type StoredImage = {
 	/** `/storage/...` path saved in the database. */
 	url: string;

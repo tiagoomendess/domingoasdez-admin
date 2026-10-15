@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatDateTime, isTimeZone } from './format';
+import { formatDate, formatDateTime, formatNumber, isTimeZone } from './format';
 
 describe('isTimeZone', () => {
 	it('accepts IANA zones only', () => {
@@ -26,6 +26,16 @@ describe('formatDateTime', () => {
 	it('renders nothing for missing or invalid dates', () => {
 		expect(formatDateTime(null, { timeZone: 'Europe/Lisbon', locale: 'pt-PT' })).toBe('');
 		expect(formatDateTime('nope', { timeZone: 'Europe/Lisbon', locale: 'pt-PT' })).toBe('');
+	});
+});
+
+describe('formatNumber', () => {
+	it('groups digits the way each language does', () => {
+		// pt-PT groups with a no-break space, and only from five digits on.
+		expect(formatNumber(46092, 'pt-PT')).toBe('46\u00a0092');
+		expect(formatNumber(1444, 'pt-PT')).toBe('1444');
+		expect(formatNumber(46092, 'en')).toBe('46,092');
+		expect(formatNumber(0, 'en')).toBe('0');
 	});
 });
 

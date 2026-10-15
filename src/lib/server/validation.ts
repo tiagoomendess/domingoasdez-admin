@@ -71,8 +71,10 @@ export const requiredText = (max: number) => required(z.string().max(max));
 export const optionalText = (max: number) => optional(z.string().max(max));
 export const optionalEmail = (max: number) => optional(z.email().max(max));
 /** Only http(s) links: anything else could run script when the public site renders it. */
-export const optionalUrl = (max: number) =>
-	optional(z.url({ protocol: /^https?$/, hostname: z.regexes.domain }).max(max));
+const httpUrl = (max: number) =>
+	z.url({ protocol: /^https?$/, hostname: z.regexes.domain }).max(max);
+export const requiredUrl = (max: number) => required(httpUrl(max));
+export const optionalUrl = (max: number) => optional(httpUrl(max));
 /** `<input type="date">` value (`YYYY-MM-DD`). */
 export const optionalDate = () => optional(z.iso.date());
 

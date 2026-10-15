@@ -92,7 +92,8 @@ pm2 startOrReload ecosystem.config.cjs
 
 Set the production variables in `.env` (`ORIGIN`, `PORT`, `PROTOCOL_HEADER`,
 `ADDRESS_HEADER=CF-Connecting-IP`, `BODY_SIZE_LIMIT` for uploads — see `.env.example`). nginx
-proxies the admin host to `PORT`, with `client_max_body_size` at least `BODY_SIZE_LIMIT`.
+proxies the admin host to `PORT`, with `client_max_body_size` at least `BODY_SIZE_LIMIT`: the
+site config is [nginx.conf](nginx.conf) (install steps at the top of the file).
 `GET /healthz` checks the app and the database for uptime monitoring.
 
 CI (`.github/workflows/ci.yml`) runs lint, type check, unit/component tests and e2e tests on

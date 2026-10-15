@@ -29,6 +29,11 @@ export function formatDateTime(
 	}).format(date);
 }
 
+/** Whole numbers with the locale's digit grouping (counts on the dashboard). */
+export function formatNumber(value: number, locale: string): string {
+	return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(value);
+}
+
 /** Calendar dates (`YYYY-MM-DD`, e.g. a founding date) have no timezone. */
 export function formatDate(value: string | null | undefined, locale: string): string {
 	if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return value ?? '';

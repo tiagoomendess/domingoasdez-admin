@@ -26,8 +26,12 @@ export default defineConfig({
 					'style-src': ['self', 'unsafe-inline'],
 					// Media comes from R2 (CDN), the legacy site and OpenStreetMap tiles.
 					'img-src': ['self', 'data:', 'blob:', 'https:', 'http://localhost:*'],
+					// Uploaded videos (media library, article bodies) come from the same origins.
+					'media-src': ['self', 'blob:', 'https:', 'http://localhost:*'],
 					'font-src': ['self', 'data:'],
 					'connect-src': ['self'],
+					// The tutorials playlist on the dashboard.
+					'frame-src': ['https://www.youtube-nocookie.com'],
 					'object-src': ['none'],
 					'base-uri': ['self'],
 					'form-action': ['self'],

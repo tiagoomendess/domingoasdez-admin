@@ -34,6 +34,7 @@ export type AuditModel =
 	| 'PlayerUpdateRequest'
 	| 'Playground'
 	| 'Poll'
+	| 'PollAnswer'
 	| 'Referee'
 	| 'ScoreReportBan'
 	| 'Season'
