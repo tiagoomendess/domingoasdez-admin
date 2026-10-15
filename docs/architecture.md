@@ -13,6 +13,21 @@ data model is the first rule**.
   publishing, game/poll image generation, karma, email outbox, delete requests), the log viewer.
   The admin only sets the flags those jobs read (e.g. `games.generate_image`, `polls.update_image`).
 
+## Porting a legacy section: bugs
+
+Port from the legacy controller and views and keep their validation and side effects (see
+`AGENTS.md`). When the legacy code turns out to be wrong:
+
+- **Obvious bug: fix it.** Behaviour that can only be a mistake: a crash or SQL error, validation
+  that contradicts the column (legacy clubs validated `website` up to 280 characters for a
+  155-character column), a permission check on the wrong name (the legacy clubs list showed
+  "add" to `clubs.edit` instead of `clubs.create`). Leave a short comment at the fix saying what
+  the legacy code did, and list the fix when reporting the work.
+- **Not sure it is a bug: ask first.** When the behaviour could be intentional (a check that only
+  runs on create, files that are never deleted, an unexpected side effect such as emblems being
+  added to the media library), describe the legacy behaviour and the change you would make, and
+  ask whether it is expected. Keep the legacy behaviour until the answer comes.
+
 ## Stack
 
 | Concern    | Choice                                                                                  |
