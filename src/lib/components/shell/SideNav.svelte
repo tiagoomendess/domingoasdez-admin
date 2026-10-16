@@ -2,11 +2,14 @@
 	import { ChevronDownOutline } from 'flowbite-svelte-icons';
 	import { slide } from 'svelte/transition';
 	import { resolvePath } from '#lib/paths.ts';
+	import { canUseToday, hasBackoffice } from '#lib/auth/access.ts';
 	import type { AdminUser } from '#lib/auth/user.ts';
 	import {
 		dashboardIcon as DashboardIcon,
 		dashboardItem,
 		isActive,
+		todayIcon as TodayIcon,
+		todayItem,
 		visibleNavigation,
 		type NavGroup
 	} from '#lib/navigation.ts';
@@ -82,16 +85,30 @@
 	</div>
 
 	<nav class="flex-1 overflow-y-auto px-3 py-4" aria-label="Menu">
-		<a
-			href={resolvePath(dashboardItem.href)}
-			class={linkClass(isActive(pathname, dashboardItem.href))}
-			aria-current={isActive(pathname, dashboardItem.href) ? 'page' : undefined}
-		>
-			<DashboardIcon class="me-3 size-5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-			{dashboardItem.label()}
-		</a>
+		{#if hasBackoffice(user)}
+			<a
+				href={resolvePath(dashboardItem.href)}
+				class={linkClass(isActive(pathname, dashboardItem.href))}
+				aria-current={isActive(pathname, dashboardItem.href) ? 'page' : undefined}
+			>
+				<DashboardIcon class="me-3 size-5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+				{dashboardItem.label()}
+			</a>
+		{/if}
+		{#if canUseToday(user)}
+			<a
+				href={resolvePath(todayItem.href)}
+				class={linkClass(isActive(pathname, todayItem.href))}
+				aria-current={isActive(pathname, todayItem.href) ? 'page' : undefined}
+			>
+				<TodayIcon class="me-3 size-5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+				{todayItem.label()}
+			</a>
+		{/if}
 
-		<hr class="my-3 border-gray-200 dark:border-gray-700" />
+		{#if groups.length}
+			<hr class="my-3 border-gray-200 dark:border-gray-700" />
+		{/if}
 
 		<ul class="space-y-1">
 			{#each groups as group (group.label())}

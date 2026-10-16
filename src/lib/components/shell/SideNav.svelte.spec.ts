@@ -8,7 +8,8 @@ const user = {
 	name: 'Editor',
 	email: 'editor@example.com',
 	picture: 'data:image/gif;base64,R0lGODlhAQABAAAAACw=',
-	permissions: ['dashboard', 'articles', 'games']
+	permissions: ['dashboard', 'articles', 'games'],
+	clubIds: []
 };
 
 describe('SideNav.svelte', () => {

@@ -9,7 +9,7 @@ import type { RequestHandler } from './$types';
  * forms pick a user. Add a section's permissions here when its form needs this select.
  */
 export const GET: RequestHandler = async ({ url }) => {
-	requireAnyPermission(['users', 'clubs.create', 'clubs.edit']);
+	requireAnyPermission(['users', 'clubs.create', 'clubs.edit', 'score-report-bans.create']);
 	const rows = await searchUserOptions(parseOptionsQuery(url));
 	return json(toOptionsPage(rows, userOption));
 };

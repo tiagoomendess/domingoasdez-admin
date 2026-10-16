@@ -17,6 +17,7 @@
 		step,
 		placeholder,
 		autocomplete,
+		list,
 		class: className = ''
 	}: {
 		name: string;
@@ -32,6 +33,8 @@
 		step?: number;
 		placeholder?: string;
 		autocomplete?: FullAutoFill;
+		/** Id of a `<datalist>` of suggestions. */
+		list?: string;
 		class?: string;
 	} = $props();
 
@@ -52,6 +55,7 @@
 			{step}
 			{placeholder}
 			{autocomplete}
+			{list}
 			value={current}
 			color={field.invalid ? 'red' : 'default'}
 			aria-invalid={field.invalid || undefined}

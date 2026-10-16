@@ -4,6 +4,7 @@ import {
 	CogOutline,
 	FileLinesOutline,
 	CalendarMonthOutline,
+	ClockOutline,
 	AwardOutline,
 	UsersGroupOutline,
 	UsersOutline
@@ -31,6 +32,13 @@ export const dashboardItem: NavItem = {
 };
 
 export const dashboardIcon: Component = ChartPieOutline;
+
+/**
+ * Today's results (legacy `/hoje/edit`). Shown by its own rule (`canUseToday`: `score_update` or
+ * a club admin), so it isn't part of the permission-filtered groups.
+ */
+export const todayItem = { label: m.nav_today, href: '/today' };
+export const todayIcon: Component = ClockOutline;
 
 /**
  * Same groups and order as the legacy backoffice sidenav. Logs stay on the legacy site, together

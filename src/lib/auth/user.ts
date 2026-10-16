@@ -6,4 +6,6 @@ export type AdminUser = {
 	picture: string;
 	/** Permission names granted to the user (`admin` implies all of them). */
 	permissions: string[];
+	/** Clubs whose `admin_user_id` is this user: they edit those clubs' results (`/today`). */
+	clubIds: number[];
 };

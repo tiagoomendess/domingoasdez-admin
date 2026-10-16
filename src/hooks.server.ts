@@ -1,5 +1,6 @@
 import { json, redirect } from '@sveltejs/kit';
 import { sequence, type Handle, type HandleServerError } from '@sveltejs/kit/hooks';
+import { isResultsOnly, resultsOnlyAllows, TODAY_PATH } from '#lib/auth/access.ts';
 import { getTextDirection } from '#lib/paraglide/runtime.js';
 import { paraglideMiddleware } from '#lib/paraglide/server.js';
 import { loginUrl } from '#lib/server/auth/redirect.ts';
@@ -53,6 +54,17 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 		// Thrown (not returned) so SvelteKit formats it for page loads, data requests and
 		// enhanced form submissions alike.
 		redirect(303, loginUrl(event.url.pathname + event.url.search));
+	}
+
+	// Club admins and `score_update` holders without `dashboard` only edit today's results.
+	const user = event.locals.user;
+	if (user && isResultsOnly(user) && !PUBLIC_PATHS.has(event.url.pathname)) {
+		if (!resultsOnlyAllows(event.url.pathname)) {
+			if (event.url.pathname.startsWith('/api/')) {
+				return json({ message: 'Forbidden' }, { status: 403 });
+			}
+			redirect(303, TODAY_PATH);
+		}
 	}
 
 	return resolve(event);

@@ -22,6 +22,7 @@
 	import { formatDate } from '#lib/format.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { resolvePath } from '#lib/paths.ts';
 	import { slugify } from '#lib/slug.ts';
 	import PlayerForm from '../PlayerForm.svelte';
 	import type { PageProps } from './$types';
@@ -95,7 +96,16 @@
 />
 
 <Card size="xl" class="mt-6 p-6">
-	<Heading tag="h2" class="mb-1 text-lg font-medium">{m.players_transfers()}</Heading>
+	<div class="mb-1 flex flex-wrap items-center justify-between gap-3">
+		<Heading tag="h2" class="text-lg font-medium">{m.players_transfers()}</Heading>
+		{#if can(data.user.permissions, 'transfers')}
+			<a
+				href={resolvePath(`/transfers?player=${data.player.id}`)}
+				class="text-sm font-medium text-primary-700 hover:underline dark:text-primary-400"
+				>{m.players_manage_transfers()}</a
+			>
+		{/if}
+	</div>
 	<p class="mb-4 text-sm text-gray-500 dark:text-gray-400">{m.players_transfers_hint()}</p>
 	{#if data.transfers.length === 0}
 		<p class="text-sm text-gray-600 dark:text-gray-400">{m.players_transfers_empty()}</p>

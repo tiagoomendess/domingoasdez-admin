@@ -1,8 +1,9 @@
 import { and, eq, sql } from 'drizzle-orm';
-import { ADMIN_ACCESS_PERMISSION, can } from '#lib/auth/permissions.ts';
+import { hasAdminAccess } from '#lib/auth/access.ts';
 import type { AdminUser } from '#lib/auth/user.ts';
 import { db } from '#lib/server/db/index.ts';
 import {
+	clubs,
 	permissions,
 	userBans,
 	userPermissions,
@@ -48,23 +49,30 @@ async function permissionNames(userId: number) {
 	return [...new Set(rows.map((row) => row.name))].sort();
 }
 
+async function adminClubIds(userId: number) {
+	const rows = await db.select({ id: clubs.id }).from(clubs).where(eq(clubs.adminUserId, userId));
+	return rows.map((row) => row.id);
+}
+
 /**
- * Applies every rule an admin account must pass: verified, not banned and holding the
- * `dashboard` (or `admin`) permission. Re-checked on every request so revoking access is instant.
+ * Applies every rule an admin account must pass: verified, not banned and allowed in
+ * (`hasAdminAccess`: the `dashboard` permission, or only the results page for `score_update`
+ * and club admins). Re-checked on every request so revoking access is instant.
  */
 async function toAdmin(row: UserRow | undefined) {
 	if (!row?.email || !row.verified) return null;
 	if (await isBanned(row.id)) return null;
 
-	const granted = await permissionNames(row.id);
-	if (!can(granted, ADMIN_ACCESS_PERMISSION)) return null;
+	const [granted, clubIds] = await Promise.all([permissionNames(row.id), adminClubIds(row.id)]);
+	if (!hasAdminAccess({ permissions: granted, clubIds })) return null;
 
 	const user: AdminUser = {
 		id: row.id,
 		name: row.name?.trim() || row.email.split('@')[0],
 		email: row.email,
 		picture: profilePictureUrl(row.picture),
-		permissions: granted
+		permissions: granted,
+		clubIds
 	};
 	return { user, passwordHash: row.password };
 }
