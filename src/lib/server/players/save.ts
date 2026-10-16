@@ -4,7 +4,7 @@ import { m } from '#lib/paraglide/messages.js';
 import { audit } from '#lib/server/audit.ts';
 import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
-import { players, transfers } from '#lib/server/db/schema.ts';
+import { players } from '#lib/server/db/schema.ts';
 import { invalid, parseForm, type FieldErrors } from '#lib/server/forms.ts';
 import { insertImageMedia, isInMediaLibrary } from '#lib/server/media-library.ts';
 import { fetchPublicUrl } from '#lib/server/net.ts';
@@ -19,19 +19,20 @@ import {
 	type StoredImage
 } from '#lib/server/storage/uploads.ts';
 import { teamExists } from '#lib/server/teams/index.ts';
-import {
-	PICTURE_URL_MAX_BYTES,
-	pictureTags,
-	playerColumns,
-	playerFormSchema,
-	type PlayerForm
-} from './form';
+import { recordTransfer } from '#lib/server/transfers.ts';
+import { PICTURE_URL_MAX_BYTES, pictureTags, playerColumns, playerFormSchema } from './form';
 import { isAssociationIdTaken, type Player } from './index';
 
 type Picture = { bytes: Uint8Array; format: ImageFormat };
 
-/** Legacy: an uploaded file wins over a link (`Image::make($url)`). */
-async function readPicture(data: PlayerForm, errors: FieldErrors): Promise<Picture | null> {
+/**
+ * The square photo of a person (players, coaches): an upload (JPEG/PNG) or a link the server
+ * downloads. Legacy: an uploaded file wins over a link (`Image::make($url)`).
+ */
+export async function readPictureInput(
+	data: { picture: File | null; picture_url: string | null },
+	errors: FieldErrors
+): Promise<Picture | null> {
 	if (data.picture) {
 		const picture = await readUploadedImage(data.picture, ['jpeg', 'png'] as const);
 		if (!picture) errors.picture = [m.validation_file_type({ types: 'JPEG, PNG' })];
@@ -44,7 +45,7 @@ async function readPicture(data: PlayerForm, errors: FieldErrors): Promise<Pictu
 		if (format === 'jpeg' || format === 'png' || format === 'webp') return { bytes, format };
 		errors.picture_url = [m.players_picture_url_not_image()];
 	} catch (error) {
-		console.warn('[players] picture link failed:', error);
+		console.warn('[pictures] picture link failed:', error);
 		errors.picture_url = [m.players_picture_url_failed()];
 	}
 	return null;
@@ -61,7 +62,8 @@ function today(): Date {
  * `PlayerController` side effects:
  * - the name is saved in title case
  * - a picture (upload or link) is cropped square, stored and added to the media library
- * - a new team (or leaving one) records a transfer dated today
+ * - a new team (or leaving one) records a transfer dated today, unless it would repeat the
+ *   team of the neighbouring transfer ("Carapeços → Carapeços")
  * Fixed legacy bugs: a repeated association number failed in SQL (unique index), and a picture
  * added on edit got no media library thumbnail. A replaced picture is deleted only when nothing
  * else uses it. Returns the saved row, or the `fail()` the action must return.
@@ -82,7 +84,7 @@ export async function savePlayer(formData: FormData, existing: Player | null, us
 	if (data.team_id && data.team_id !== existing?.teamId && !(await teamExists(data.team_id))) {
 		errors.team_id = [m.validation_not_found()];
 	}
-	const picture = await readPicture(data, errors);
+	const picture = await readPictureInput(data, errors);
 	if (Object.keys(errors).length) return { failure: invalid(errors, values) };
 
 	let stored: StoredImage | null = null;
@@ -127,14 +129,9 @@ export async function savePlayer(formData: FormData, existing: Player | null, us
 				[{ id }] = await tx.insert(players).values(columns).$returningId();
 			}
 
-			let transfer = null;
-			if (teamChanged) {
-				const [{ id: transferId }] = await tx
-					.insert(transfers)
-					.values({ playerId: id, teamId: columns.teamId, date: today(), visible: true })
-					.$returningId();
-				[transfer] = await tx.select().from(transfers).where(eq(transfers.id, transferId));
-			}
+			const transfer = teamChanged
+				? await recordTransfer(tx, { playerId: id, teamId: columns.teamId, date: today() })
+				: null;
 
 			const [player] = await tx.select().from(players).where(eq(players.id, id));
 			return { player, media, transfer };

@@ -4,7 +4,7 @@ import { m } from '#lib/paraglide/messages.js';
 import { audit } from '#lib/server/audit.ts';
 import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
-import { media, playerUpdateRequests, players, transfers } from '#lib/server/db/schema.ts';
+import { media, playerUpdateRequests, players } from '#lib/server/db/schema.ts';
 import { invalid, parseForm, type FieldErrors } from '#lib/server/forms.ts';
 import { insertImageMedia } from '#lib/server/media-library.ts';
 import { fileInUse, mediaUsage } from '#lib/server/media/index.ts';
@@ -21,6 +21,7 @@ import {
 	type StoredImage
 } from '#lib/server/storage/uploads.ts';
 import { teamExists } from '#lib/server/teams/index.ts';
+import { recordTransfer } from '#lib/server/transfers.ts';
 import {
 	approveSchema,
 	compareRequest,
@@ -73,7 +74,8 @@ async function storeRequestPicture(url: string): Promise<StoredImage | 'invalid'
  * site applied everything). With the legacy `approve()` side effects:
  * - a new player is created (visible), or the existing one updated
  * - the picture link is downloaded, cropped square and added to the media library
- * - a club change records a transfer dated when the request was made and moves the player
+ * - a club change moves the player and records a transfer dated when the request was made
+ *   (unless it would repeat the team of the neighbouring transfer)
  * Fixed legacy bugs: the request was marked approved before the player was saved, so a failure
  * (unknown club, broken picture link) left it approved with nothing applied; everything now
  * happens in one transaction. A repeated association number is a form error instead of SQL.
@@ -183,14 +185,9 @@ export async function approveRequest(formData: FormData, request: UpdateRequest,
 					})
 				: null;
 
-			let transfer = null;
-			if (selected.has('club')) {
-				const [{ id }] = await tx
-					.insert(transfers)
-					.values({ playerId, teamId, date: request.createdAt ?? new Date(), visible: true })
-					.$returningId();
-				[transfer] = await tx.select().from(transfers).where(eq(transfers.id, id));
-			}
+			const transfer = selected.has('club')
+				? await recordTransfer(tx, { playerId, teamId, date: request.createdAt ?? new Date() })
+				: null;
 
 			const [player] = await tx.select().from(players).where(eq(players.id, playerId));
 			const [row] = await tx

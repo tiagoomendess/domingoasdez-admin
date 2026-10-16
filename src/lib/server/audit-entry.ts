@@ -43,7 +43,9 @@ export type AuditModel =
 	| 'TeamAgentHistory'
 	| 'Transfer'
 	| 'User'
+	| 'UserBan'
 	| 'UserPermission'
+	| 'UserProfile'
 	| 'Variable';
 
 export type AuditValues = Record<string, unknown>;

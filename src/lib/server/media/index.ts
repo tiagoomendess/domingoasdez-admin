@@ -1,5 +1,6 @@
 import { and, eq, like, ne, or, type SQL } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
+import { deleteFile } from '#lib/server/storage/index.ts';
 import {
 	articles,
 	clubs,
@@ -150,4 +151,18 @@ export function fileInUse(usage: MediaUsage): number {
 export async function uploaderName(userId: number): Promise<string | null> {
 	const [user] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId));
 	return user?.name ?? null;
+}
+
+/**
+ * Deletes a stored file that was just replaced, unless anything still shows it: a media library
+ * row (every legacy upload has one), another record's picture column or an article/page text.
+ * Call it after the row that used the file points elsewhere. Never throws.
+ */
+export async function deleteFileIfUnused(url: string | null | undefined): Promise<void> {
+	if (!url?.startsWith('/storage/')) return;
+	try {
+		if (fileInUse(await mediaUsage({ id: 0, url })) === 0) await deleteFile(url);
+	} catch (error) {
+		console.warn('[media] could not clean up a replaced file:', error);
+	}
 }

@@ -1,4 +1,5 @@
-import { and, desc, eq, like, ne, or, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, like, ne, or, type SQL } from 'drizzle-orm';
+import type { Option } from '#lib/options.ts';
 import { emblemUrl } from '#lib/server/clubs/index.ts';
 import { db } from '#lib/server/db/index.ts';
 import {
@@ -17,8 +18,10 @@ import {
 	orderBy,
 	pageOffset,
 	parseListParams,
+	relevance,
 	searchId
 } from '#lib/server/list.ts';
+import type { OptionsQuery } from '#lib/server/options.ts';
 import { profilePictureUrl } from '#lib/server/media.ts';
 
 export type Player = typeof players.$inferSelect;
@@ -149,4 +152,63 @@ export async function playerTransfers(id: number, limit = 10) {
 		...row,
 		clubEmblem: row.clubName ? emblemUrl(row.clubEmblem) : null
 	}));
+}
+
+export async function playerExists(id: number): Promise<boolean> {
+	return (await db.$count(players, eq(players.id, id))) > 0;
+}
+
+type PlayerOptionRow = Pick<Player, 'id' | 'name' | 'nickname' | 'picture'> & {
+	clubName: string | null;
+};
+
+export function playerOption(player: PlayerOptionRow): Option {
+	return {
+		value: player.id,
+		label: player.nickname ? `${player.name} (${player.nickname})` : player.name,
+		description: [`#${player.id}`, player.clubName].filter(Boolean).join(' · '),
+		image: profilePictureUrl(player.picture)
+	};
+}
+
+const playerOptionColumns = {
+	id: players.id,
+	name: players.name,
+	nickname: players.nickname,
+	picture: players.picture,
+	clubName: clubs.name
+};
+
+export async function findPlayerOption(id: number | null | undefined): Promise<Option | null> {
+	if (!id) return null;
+	const [player] = await db
+		.select(playerOptionColumns)
+		.from(players)
+		.leftJoin(teams, eq(teams.id, players.teamId))
+		.leftJoin(clubs, eq(clubs.id, teams.clubId))
+		.where(eq(players.id, id))
+		.limit(1);
+	return player ? playerOption(player) : null;
+}
+
+/** Options of the player select: by name, nickname or id, best name matches first. */
+export async function searchPlayerOptions({ q, limit, offset }: OptionsQuery) {
+	const pattern = containsPattern(q);
+	const id = searchId(q);
+	const where = q
+		? or(
+				like(players.name, pattern),
+				like(players.nickname, pattern),
+				id ? eq(players.id, id) : undefined
+			)
+		: undefined;
+	return db
+		.select(playerOptionColumns)
+		.from(players)
+		.leftJoin(teams, eq(teams.id, players.teamId))
+		.leftJoin(clubs, eq(clubs.id, teams.clubId))
+		.where(where)
+		.orderBy(...(q ? [relevance(players.name, q)] : []), asc(players.name), asc(players.id))
+		.limit(limit)
+		.offset(offset);
 }
