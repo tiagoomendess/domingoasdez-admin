@@ -75,7 +75,7 @@
 					</Heading>
 					<span class="text-sm text-gray-500 dark:text-gray-400">({section.games.length})</span>
 				</div>
-				<div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+				<div class="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
 					{#each section.games as game (game.id)}
 						<!-- Re-created when the saved game comes back, so the stepper starts from it. -->
 						{#key game.updatedAt}

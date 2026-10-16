@@ -29,7 +29,8 @@
 		onClose: () => void;
 	} = $props();
 
-	const groups = $derived(visibleNavigation(user.permissions));
+	// Results-only users just get the top-level link to today's results.
+	const groups = $derived(hasBackoffice(user) ? visibleNavigation(user) : []);
 
 	// Groups the admin toggled by hand; the others follow the current page.
 	let toggled = $state<Record<string, boolean>>({});
@@ -95,7 +96,8 @@
 				{dashboardItem.label()}
 			</a>
 		{/if}
-		{#if canUseToday(user)}
+		<!-- Backoffice users find it under Jogos. -->
+		{#if !hasBackoffice(user) && canUseToday(user)}
 			<a
 				href={resolvePath(todayItem.href)}
 				class={linkClass(isActive(pathname, todayItem.href))}

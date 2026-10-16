@@ -115,7 +115,8 @@
 	</div>
 {/snippet}
 
-<Card size="xl" class={['p-4', dirty && 'ring-2 ring-primary-500']}>
+<!-- min-w-0: the nowrap (truncated) texts would otherwise widen the grid column past the screen. -->
+<Card size="xl" class={['min-w-0 p-4', dirty && 'ring-2 ring-primary-500']}>
 	<form
 		method="POST"
 		{action}

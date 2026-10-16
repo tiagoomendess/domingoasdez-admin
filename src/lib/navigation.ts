@@ -9,14 +9,18 @@ import {
 	UsersGroupOutline,
 	UsersOutline
 } from 'flowbite-svelte-icons';
+import { canUseToday, type AccessUser } from '#lib/auth/access.ts';
 import { can, type Permission } from '#lib/auth/permissions.ts';
 import { m } from '#lib/paraglide/messages.js';
 
 export type NavItem = {
 	label: () => string;
 	href: string;
-	/** Needed to see the entry (the matching page checks it again on the server). */
-	permission: Permission;
+	/**
+	 * Needed to see the entry (the matching page checks it again on the server): a permission, or
+	 * an access rule for pages that aren't guarded by a single permission.
+	 */
+	permission: Permission | ((user: AccessUser) => boolean);
 };
 
 export type NavGroup = {
@@ -34,10 +38,10 @@ export const dashboardItem: NavItem = {
 export const dashboardIcon: Component = ChartPieOutline;
 
 /**
- * Today's results (legacy `/hoje/edit`). Shown by its own rule (`canUseToday`: `score_update` or
- * a club admin), so it isn't part of the permission-filtered groups.
+ * Today's results (legacy `/hoje/edit`), for `score_update` and club admins (`canUseToday`). Listed
+ * under Jogos; results-only users (no groups) get it as a top-level link instead.
  */
-export const todayItem = { label: m.nav_today, href: '/today' };
+export const todayItem: NavItem = { label: m.nav_today, href: '/today', permission: canUseToday };
 export const todayIcon: Component = ClockOutline;
 
 /**
@@ -89,6 +93,7 @@ export const navigation: NavGroup[] = [
 		label: m.nav_group_games,
 		icon: CalendarMonthOutline,
 		items: [
+			todayItem,
 			{ label: m.nav_games, href: '/games', permission: 'games' },
 			{ label: m.nav_game_comments, href: '/game-comments', permission: 'games' },
 			{ label: m.nav_goals, href: '/goals', permission: 'goals' }
@@ -117,13 +122,19 @@ export const navigation: NavGroup[] = [
 	}
 ];
 
-/** The navigation trimmed to what `granted` permissions allow; empty groups are dropped. */
-export function visibleNavigation(granted: Iterable<string>): NavGroup[] {
-	const names = new Set(granted);
+/** Whether `user` may see the entry. */
+export const canSee = (user: AccessUser, item: NavItem) =>
+	typeof item.permission === 'function'
+		? item.permission(user)
+		: can(user.permissions, item.permission);
+
+/** The navigation trimmed to what the user may see; empty groups are dropped. */
+export function visibleNavigation(user: AccessUser): NavGroup[] {
+	const access = { ...user, permissions: new Set(user.permissions) };
 	return navigation
 		.map((group) => ({
 			...group,
-			items: group.items.filter((item) => can(names, item.permission))
+			items: group.items.filter((item) => canSee(access, item))
 		}))
 		.filter((group) => group.items.length > 0);
 }
