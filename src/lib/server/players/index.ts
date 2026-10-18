@@ -4,6 +4,7 @@ import { emblemUrl } from '#lib/server/clubs/index.ts';
 import { db } from '#lib/server/db/index.ts';
 import {
 	clubs,
+	games,
 	goals,
 	mvpVotes,
 	playerPositions,
@@ -191,17 +192,31 @@ export async function findPlayerOption(id: number | null | undefined): Promise<O
 	return player ? playerOption(player) : null;
 }
 
+/** Team of one side of a game (`?game=&side=` of the player options), or null when unknown. */
+export async function gameSideTeamId(gameId: number, side: string | null) {
+	if (!gameId || (side !== 'home' && side !== 'away')) return null;
+	const [row] = await db
+		.select({ home: games.homeTeamId, away: games.awayTeamId })
+		.from(games)
+		.where(eq(games.id, gameId));
+	return row ? row[side] : null;
+}
+
 /** Options of the player select: by name, nickname or id, best name matches first. */
-export async function searchPlayerOptions({ q, limit, offset }: OptionsQuery) {
+export async function searchPlayerOptions(
+	{ q, limit, offset }: OptionsQuery,
+	teamId?: number | null
+) {
 	const pattern = containsPattern(q);
 	const id = searchId(q);
-	const where = q
+	const search = q
 		? or(
 				like(players.name, pattern),
 				like(players.nickname, pattern),
 				id ? eq(players.id, id) : undefined
 			)
 		: undefined;
+	const where = and(search, teamId ? eq(players.teamId, teamId) : undefined);
 	return db
 		.select(playerOptionColumns)
 		.from(players)

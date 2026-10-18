@@ -34,6 +34,7 @@
 		invalid = false,
 		describedBy,
 		clearable = !required,
+		params,
 		onchange
 	}: {
 		name: string;
@@ -51,6 +52,8 @@
 		describedBy?: string;
 		/** Allow going back to "nothing selected". Defaults to `!required`. */
 		clearable?: boolean;
+		/** Extra query parameters for the endpoint (e.g. a filter by team); the list reloads when they change. */
+		params?: Record<string, string>;
 		onchange?: (option: Option | null) => void;
 	} = $props();
 
@@ -70,6 +73,9 @@
 	let page = $state(0);
 	/** Search text of `items`; `null` until something was loaded. */
 	let query = $state<string | null>(null);
+	/** `params` of `items`: a different filter makes the loaded options stale. */
+	let loadedParams = $state('');
+	const paramsKey = $derived(JSON.stringify(params ?? {}));
 	let loading = $state(false);
 	let failed = $state(false);
 	let activeIndex = $state(-1);
@@ -103,6 +109,7 @@
 			const url = new URL(endpoint, window.location.origin);
 			if (q) url.searchParams.set('q', q);
 			if (nextPage > 1) url.searchParams.set('page', String(nextPage));
+			for (const [key, param] of Object.entries(params ?? {})) url.searchParams.set(key, param);
 			const response = await fetch(url, {
 				signal: current.signal,
 				headers: { accept: 'application/json' }
@@ -123,6 +130,7 @@
 			hasMore = result.hasMore;
 			page = nextPage;
 			query = q;
+			loadedParams = paramsKey;
 		} catch {
 			if (current.signal.aborted) return;
 			failed = true;
@@ -131,6 +139,7 @@
 				hasMore = false;
 				page = 0;
 				query = q;
+				loadedParams = paramsKey;
 			}
 		} finally {
 			if (controller === current) {
@@ -146,7 +155,7 @@
 		if (disabled || open) return;
 		open = true;
 		const q = searchText();
-		if (query !== q || failed) load(q, 1);
+		if (query !== q || failed || loadedParams !== paramsKey) load(q, 1);
 		else if (activeIndex < 0 && items.length) activeIndex = 0;
 	}
 

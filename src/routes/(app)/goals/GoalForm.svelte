@@ -46,11 +46,32 @@
 	const side = $derived(
 		isFormFailure(form) ? (form.values.side === 'away' ? 'away' : 'home') : goal.side
 	);
+	// Radios and toggle are uncontrolled inputs: mirror them to filter the players.
+	let chosenSide = $state<'home' | 'away' | null>(null);
+	let ownGoalChosen = $state<boolean | null>(null);
+	const ownGoal = $derived(
+		ownGoalChosen ?? (isFormFailure(form) ? form.values.own_goal !== undefined : goal.ownGoal)
+	);
+	// An own goal is scored by a player of the opposing team.
+	const playerSide = $derived.by(() => {
+		const scored = chosenSide ?? side;
+		return ownGoal ? (scored === 'home' ? 'away' : 'home') : scored;
+	});
+	const playerParams = $derived<Record<string, string>>(
+		current ? { game: String(current.value), side: playerSide } : {}
+	);
 </script>
 
 <EntityForm {form} {action} {readonly} {cancelHref} {submitLabel}>
 	<Card size="xl" class="max-w-3xl p-6">
-		<div class="grid gap-5 md:grid-cols-2">
+		<div
+			class="grid gap-5 md:grid-cols-2"
+			onchange={(event) => {
+				const input = event.target as HTMLInputElement;
+				if (input.name === 'side') chosenSide = input.value === 'away' ? 'away' : 'home';
+				else if (input.name === 'own_goal') ownGoalChosen = input.checked;
+			}}
+		>
 			<FormField name="game_id" label={m.goals_game()} required class="md:col-span-2">
 				{#snippet children(field)}
 					<SearchSelect
@@ -103,6 +124,7 @@
 						id={field.id}
 						name="player_id"
 						endpoint={resolve('/api/options/players')}
+						params={playerParams}
 						value={player}
 						label={m.goals_player()}
 						placeholder={m.select_search_players()}
