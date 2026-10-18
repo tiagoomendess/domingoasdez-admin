@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createBanSchema, isActive, targetErrors, updateBanSchema } from './form';
+import { banMatches, createBanSchema, isActive, targetErrors, updateBanSchema } from './form';
 
 const base = { ban_days: '3', reason: 'Resultado falso', shadow_ban: undefined, ip_ban: undefined };
 
@@ -58,5 +58,33 @@ describe('isActive', () => {
 		expect(isActive(new Date('2026-10-17T00:00:00Z'), now)).toBe(true);
 		expect(isActive(new Date('2026-10-16T12:00:00Z'), now)).toBe(false);
 		expect(isActive(null, now)).toBe(false);
+	});
+});
+
+describe('banMatches', () => {
+	const sender = { uuid: 'dev-1', userId: 7, ipAddress: '1.2.3.4', userAgent: 'UA' };
+	const ban = (values: Partial<typeof sender & { ipBan: boolean }>) => ({
+		uuid: null,
+		userId: null,
+		ipAddress: null,
+		userAgent: null,
+		ipBan: false,
+		...values
+	});
+
+	it('matches the same device or user', () => {
+		expect(banMatches(ban({ uuid: 'dev-1' }), sender)).toBe(true);
+		expect(banMatches(ban({ userId: 7 }), sender)).toBe(true);
+	});
+
+	it('matches the IP only when banning the whole IP or the same browser', () => {
+		expect(banMatches(ban({ ipAddress: '1.2.3.4', ipBan: true }), sender)).toBe(true);
+		expect(banMatches(ban({ ipAddress: '1.2.3.4', userAgent: 'UA' }), sender)).toBe(true);
+		expect(banMatches(ban({ ipAddress: '1.2.3.4', userAgent: 'Other' }), sender)).toBe(false);
+	});
+
+	it('does not match two signed-out senders by their missing user', () => {
+		const anonymous = { ...sender, userId: null, uuid: 'dev-2' };
+		expect(banMatches(ban({ ipAddress: '1.2.3.4', userAgent: 'Other' }), anonymous)).toBe(false);
 	});
 });

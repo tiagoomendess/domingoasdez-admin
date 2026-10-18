@@ -233,3 +233,17 @@ export async function gameReports(gameId: number, detailed: boolean) {
 }
 
 export type GameReport = Awaited<ReturnType<typeof gameReports>>[number];
+
+/** "Home vs Away" club names, as legacy ban reasons name the game. */
+export async function gameMatchName(id: number): Promise<string> {
+	const [row] = await db
+		.select({ home: homeClubs.name, away: awayClubs.name })
+		.from(games)
+		.innerJoin(homeTeams, eq(homeTeams.id, games.homeTeamId))
+		.innerJoin(homeClubs, eq(homeClubs.id, homeTeams.clubId))
+		.innerJoin(awayTeams, eq(awayTeams.id, games.awayTeamId))
+		.innerJoin(awayClubs, eq(awayClubs.id, awayTeams.clubId))
+		.where(eq(games.id, id))
+		.limit(1);
+	return row ? `${row.home} vs ${row.away}` : `#${id}`;
+}

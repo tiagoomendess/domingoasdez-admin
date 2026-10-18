@@ -6,8 +6,10 @@ import { audit } from '#lib/server/audit.ts';
 import { db } from '#lib/server/db/index.ts';
 import { games, scoreReports } from '#lib/server/db/schema.ts';
 import { invalid, parseForm } from '#lib/server/forms.ts';
-import { scoreFormSchema } from './form';
-import { findScoreGame } from './index';
+import { changedColumns } from '#lib/server/db/changes.ts';
+import { banFakeReporter } from '#lib/server/score-report-bans/save.ts';
+import { scoreFormSchema, statusFlags, type ReportStatus } from './form';
+import { findScoreGame, gameMatchName } from './index';
 
 /** Where the game must be for a club admin: today (or yesterday evening) only. */
 const CLUB_ADMIN_WINDOW_MS = 36 * 60 * 60 * 1000;
@@ -70,4 +72,28 @@ export async function saveScore(formData: FormData, user: AccessUser & { id: num
 	const [updated] = await db.select().from(games).where(eq(games.id, game.id));
 	await audit({ action: 'update', model: 'Game', oldValues: game, newValues: updated });
 	return { game: updated };
+}
+
+/**
+ * Mark a report correct or fake by hand (legacy `GamesController@updateIsFake`): the automatic
+ * check only catches scores above the final result. Like legacy, marking a website report fake
+ * bans its sender right away (15 days), unless an active ban already covers them.
+ */
+export async function setReportStatus(id: number, status: ReportStatus) {
+	const [report] = await db.select().from(scoreReports).where(eq(scoreReports.id, id)).limit(1);
+	if (!report) return null;
+	const changes = changedColumns(report, statusFlags(status));
+	if (Object.keys(changes).length) {
+		await db.update(scoreReports).set(changes).where(eq(scoreReports.id, id));
+		const [updated] = await db.select().from(scoreReports).where(eq(scoreReports.id, id));
+		await audit({ action: 'update', model: 'ScoreReport', oldValues: report, newValues: updated });
+	}
+	const ban =
+		status === 'fake' && report.source === 'website'
+			? await banFakeReporter(report, await gameMatchName(report.gameId))
+			: null;
+	return {
+		...statusFlags(status),
+		ban: ban && { id: ban.ban.id, created: ban.created, expiresAt: ban.ban.expiresAt }
+	};
 }

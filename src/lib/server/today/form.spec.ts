@@ -5,8 +5,10 @@ import {
 	groupByCompetition,
 	localDay,
 	reportedScores,
+	reportStatusSchema,
 	scoreFormSchema,
-	shiftDay
+	shiftDay,
+	statusFlags
 } from './form';
 
 describe('scoreFormSchema', () => {
@@ -105,5 +107,19 @@ describe('accuracyLevel', () => {
 			'bad'
 		]);
 		expect(accuracyLevel(null)).toBeNull();
+	});
+});
+
+describe('reportStatusSchema / statusFlags', () => {
+	it('accepts the legacy statuses only', () => {
+		expect(reportStatusSchema.safeParse({ status: 'fake' }).success).toBe(true);
+		expect(reportStatusSchema.safeParse({ status: 'deleted' }).success).toBe(false);
+		expect(reportStatusSchema.safeParse(null).success).toBe(false);
+	});
+
+	it('never sets both flags', () => {
+		expect(statusFlags('fake')).toEqual({ isFake: true, isCorrect: false });
+		expect(statusFlags('correct')).toEqual({ isFake: false, isCorrect: true });
+		expect(statusFlags('unknown')).toEqual({ isFake: false, isCorrect: false });
 	});
 });

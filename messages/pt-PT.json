@@ -1121,5 +1121,14 @@
 	"today_legend_anonymous": "Não tinha login feito",
 	"today_legend_location": "Partilhou a localização (a cor indica a precisão: verde é a melhor)",
 	"today_legend_no_location": "Não partilhou a localização",
-	"today_legend_final": "Enviado como resultado final"
+	"today_legend_final": "Enviado como resultado final",
+	"today_status": "Este resultado é",
+	"today_status_unknown": "Por avaliar",
+	"today_status_correct": "Correto",
+	"today_status_fake": "Falso",
+	"today_status_failed": "Não foi possível guardar. Tente outra vez.",
+	"today_status_correct_hint": "Conta para o karma do dispositivo no processamento das 02:15 (resultados das últimas 24 h).",
+	"today_status_banned": "Quem enviou foi bloqueado por 15 dias.",
+	"today_status_already_banned": "Quem enviou já estava bloqueado.",
+	"today_status_view_ban": "Ver bloqueio"
 }

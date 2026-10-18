@@ -15,6 +15,7 @@
 
 	const canBan = $derived(can(data.user.permissions, 'score-report-bans.create'));
 	const canSeeUsers = $derived(can(data.user.permissions, 'users'));
+	const canFlag = $derived(can(data.user.permissions, 'admin'));
 	const isToday = $derived(data.day === data.today);
 	const dayLabel = $derived(
 		new Intl.DateTimeFormat(getLocale(), {
@@ -84,6 +85,7 @@
 								action={scoreAction}
 								{canBan}
 								{canSeeUsers}
+								{canFlag}
 								saved={savedGame === game.id}
 								error={failedGame === game.id && form && 'message' in form ? form.message : null}
 							/>

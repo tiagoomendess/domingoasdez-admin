@@ -4,11 +4,18 @@ import { m } from '#lib/paraglide/messages.js';
 import { audit } from '#lib/server/audit.ts';
 import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
-import { scoreReportBans } from '#lib/server/db/schema.ts';
+import { scoreReportBans, uuidKarmas } from '#lib/server/db/schema.ts';
 import { invalid, parseForm } from '#lib/server/forms.ts';
 import { userExists } from '#lib/server/users.ts';
-import { createBanSchema, DAY_MS, isActive, targetErrors, updateBanSchema } from './form';
-import { findBan, type BanRow } from './index';
+import {
+	createBanSchema,
+	DAY_MS,
+	FAKE_REPORT_BAN_DAYS,
+	isActive,
+	targetErrors,
+	updateBanSchema
+} from './form';
+import { findBan, findMatchingBan, lastKnownUserId, type BanRow } from './index';
 
 /** Legacy `ScoreReportBanController@store`: banned for `ban_days` from now. */
 export async function createBan(formData: FormData) {
@@ -78,4 +85,65 @@ export async function liftBan(ban: BanRow) {
 export async function deleteBan(ban: BanRow) {
 	await db.delete(scoreReportBans).where(eq(scoreReportBans.id, ban.id));
 	await audit({ action: 'delete', model: 'ScoreReportBan', oldValues: ban });
+}
+
+type FakeReport = {
+	id: number;
+	uuid: string | null;
+	userId: number | null;
+	ipAddress: string | null;
+	userAgent: string | null;
+};
+
+/**
+ * Legacy `ScoreReport::banUser`: the sender of a report marked fake is banned for 15 days,
+ * unless an active ban already covers them, and their device karma drops to -1. Legacy also
+ * emailed the user; the admin sends no email.
+ */
+export async function banFakeReporter(report: FakeReport, matchName: string) {
+	const target = {
+		uuid: report.uuid?.slice(0, 36) || null,
+		// Signed out: the last user seen on that device.
+		userId: report.userId ?? (await lastKnownUserId(report.uuid)),
+		ipAddress: report.ipAddress?.slice(0, 40) || null,
+		userAgent: report.userAgent?.slice(0, 255) || null
+	};
+	const existing = await findMatchingBan(target);
+	if (existing) return { ban: existing, created: false };
+	if (targetErrors(target, false).uuid) return null;
+
+	const [{ id }] = await db
+		.insert(scoreReportBans)
+		.values({
+			...target,
+			// Stored text, shown on the public site: kept in Portuguese like legacy.
+			reason: `Envio de um resultado falso no jogo ${matchName}`.slice(0, 255),
+			expiresAt: new Date(Date.now() + FAKE_REPORT_BAN_DAYS * DAY_MS)
+		})
+		.$returningId();
+	const ban = (await findBan(id))!;
+	await audit({
+		action: 'create',
+		model: 'ScoreReportBan',
+		newValues: ban,
+		extraInfo: `score_report ${report.id}`
+	});
+	await punishDevice(target.uuid);
+	return { ban, created: true };
+}
+
+/** Legacy `handleKarmaBannedUser`: a banned device's karma is set to -1. */
+async function punishDevice(uuid: string | null) {
+	if (!uuid) return;
+	const [old] = await db.select().from(uuidKarmas).where(eq(uuidKarmas.uuid, uuid)).limit(1);
+	if (old?.karma === -1) return;
+	if (old) await db.update(uuidKarmas).set({ karma: -1 }).where(eq(uuidKarmas.uuid, uuid));
+	else await db.insert(uuidKarmas).values({ uuid, karma: -1 });
+	const [updated] = await db.select().from(uuidKarmas).where(eq(uuidKarmas.uuid, uuid));
+	await audit({
+		action: old ? 'update' : 'create',
+		model: 'UuidKarma',
+		oldValues: old ?? null,
+		newValues: updated
+	});
 }

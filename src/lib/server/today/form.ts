@@ -92,3 +92,14 @@ export function groupByCompetition<
 	}
 	return [...sections.values()];
 }
+
+/** Legacy `GamesController@updateIsFake`: a report is unknown, correct or fake (never both). */
+export const REPORT_STATUSES = ['unknown', 'correct', 'fake'] as const;
+export type ReportStatus = (typeof REPORT_STATUSES)[number];
+
+export const reportStatusSchema = z.object({ status: z.enum(REPORT_STATUSES) });
+
+export const statusFlags = (status: ReportStatus) => ({
+	isFake: status === 'fake',
+	isCorrect: status === 'correct'
+});

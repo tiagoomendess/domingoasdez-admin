@@ -15,6 +15,7 @@
 		action = '?/score',
 		canBan = false,
 		canSeeUsers = false,
+		canFlag = false,
 		saved = false,
 		error = null
 	}: {
@@ -37,6 +38,7 @@
 		/** Passed to the reports modal. */
 		canBan?: boolean;
 		canSeeUsers?: boolean;
+		canFlag?: boolean;
 		/** This game was the last one saved. */
 		saved?: boolean;
 		/** The action's message when saving this game failed. */
@@ -202,4 +204,5 @@
 	bind:open={showReports}
 	{canBan}
 	{canSeeUsers}
+	{canFlag}
 />

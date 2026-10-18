@@ -36,6 +36,7 @@ export type AuditModel =
 	| 'Poll'
 	| 'PollAnswer'
 	| 'Referee'
+	| 'ScoreReport'
 	| 'ScoreReportBan'
 	| 'Season'
 	| 'Team'
@@ -46,6 +47,7 @@ export type AuditModel =
 	| 'UserBan'
 	| 'UserPermission'
 	| 'UserProfile'
+	| 'UuidKarma'
 	| 'Variable';
 
 export type AuditValues = Record<string, unknown>;

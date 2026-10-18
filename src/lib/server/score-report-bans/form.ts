@@ -50,3 +50,28 @@ export const isActive = (expiresAt: Date | null, now = new Date()) =>
 	expiresAt !== null && expiresAt > now;
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Ban length when a report is marked fake (legacy `ScoreReport::banUser`). */
+export const FAKE_REPORT_BAN_DAYS = 15;
+
+export type BanTarget = {
+	uuid: string | null;
+	userId: number | null;
+	ipAddress: string | null;
+	userAgent: string | null;
+};
+
+/**
+ * Legacy `ScoreReportBan::findMatch`: an active ban covers the sender when it has the same device
+ * or user, bans their whole IP, or has the same IP and browser. Legacy compared user ids with
+ * `==`, so a sender without a user matched any user-less ban that shared their IP.
+ */
+export function banMatches(
+	ban: Pick<BanTarget, 'uuid' | 'userId' | 'ipAddress' | 'userAgent'> & { ipBan: boolean },
+	target: BanTarget
+): boolean {
+	if (target.uuid && ban.uuid === target.uuid) return true;
+	if (target.userId && ban.userId === target.userId) return true;
+	if (!target.ipAddress || ban.ipAddress !== target.ipAddress) return false;
+	return ban.ipBan || ban.userAgent === target.userAgent;
+}

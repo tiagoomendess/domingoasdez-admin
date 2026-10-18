@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { A, Badge, Button, Modal, Spinner } from 'flowbite-svelte';
+	import { A, Badge, Button, ButtonGroup, Modal, Spinner } from 'flowbite-svelte';
 	import {
 		BanOutline,
 		ChevronDownOutline,
@@ -46,7 +46,8 @@
 		title,
 		open = $bindable(false),
 		canBan = false,
-		canSeeUsers = false
+		canSeeUsers = false,
+		canFlag = false
 	}: {
 		gameId: number;
 		title: string;
@@ -55,6 +56,8 @@
 		canBan?: boolean;
 		/** `users`: link the sender to their user page. */
 		canSeeUsers?: boolean;
+		/** `admin` (legacy `updateIsFake`): mark a report correct or fake. */
+		canFlag?: boolean;
 	} = $props();
 
 	let reports = $state<Report[] | null>(null);
@@ -113,6 +116,52 @@
 
 	const mapUrl = (location: { lat: number; lng: number }) =>
 		`https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lng}#map=17/${location.lat}/${location.lng}`;
+
+	type Status = 'unknown' | 'correct' | 'fake';
+
+	const statusOf = (report: Report): Status =>
+		report.isFake ? 'fake' : report.isCorrect ? 'correct' : 'unknown';
+
+	const statusButtons = [
+		{ status: 'unknown', label: m.today_status_unknown, active: 'dark' },
+		{ status: 'correct', label: m.today_status_correct, active: 'green' },
+		{ status: 'fake', label: m.today_status_fake, active: 'red' }
+	] as const;
+
+	/** Report being saved, and the one whose save failed. */
+	let saving = $state<number | null>(null);
+	let saveFailed = $state<number | null>(null);
+	/** The ban behind a report marked fake here: just created, or one that already covered them. */
+	let bans = $state<Record<number, { id: number; created: boolean }>>({});
+
+	async function setStatus(report: Report, status: Status) {
+		if (saving !== null || statusOf(report) === status) return;
+		saving = report.id;
+		saveFailed = null;
+		try {
+			const response = await fetch(
+				resolve('/(app)/today/score-reports/[id=id]', { id: report.id }),
+				{
+					method: 'PUT',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ status })
+				}
+			);
+			if (!response.ok) throw new Error(String(response.status));
+			const flags = (await response.json()) as {
+				isFake: boolean;
+				isCorrect: boolean;
+				ban: { id: number; created: boolean } | null;
+			};
+			report.isFake = flags.isFake;
+			report.isCorrect = flags.isCorrect;
+			if (flags.ban) bans[report.id] = flags.ban;
+		} catch {
+			saveFailed = report.id;
+		} finally {
+			saving = null;
+		}
+	}
 
 	/** Prefills the ban form with everything that identifies the sender. */
 	function banHref(details: NonNullable<Report['details']>) {
@@ -276,6 +325,50 @@
 								{@render copyable(m.today_ip(), details.ipAddress)}
 								{@render copyable(m.today_user_agent(), details.userAgent)}
 								{@render copyable(m.today_device(), details.uuid)}
+								{#if canFlag}
+									<div class="sm:col-span-2">
+										<dt id="status-{report.id}" class="mb-1 text-gray-500 dark:text-gray-400">
+											{m.today_status()}
+										</dt>
+										<dd class="flex flex-wrap items-center gap-2">
+											<ButtonGroup aria-labelledby="status-{report.id}">
+												{#each statusButtons as option (option.status)}
+													{@const active = statusOf(report) === option.status}
+													<Button
+														size="xs"
+														color={active ? option.active : 'alternative'}
+														aria-pressed={active}
+														disabled={saving !== null}
+														onclick={() => setStatus(report, option.status)}
+													>
+														{option.label()}
+													</Button>
+												{/each}
+											</ButtonGroup>
+											{#if saving === report.id}<Spinner size="4" />{/if}
+										</dd>
+										{#if saveFailed === report.id}
+											<p class="mt-1 text-xs text-red-700 dark:text-red-400" role="alert">
+												{m.today_status_failed()}
+											</p>
+										{:else if report.isFake && bans[report.id]}
+											{@const ban = bans[report.id]}
+											<p class="mt-1 text-xs text-red-700 dark:text-red-400" role="status">
+												{ban.created ? m.today_status_banned() : m.today_status_already_banned()}
+												{#if canBan}
+													<A
+														href={resolve('/(app)/score-report-bans/[id=id]', { id: ban.id })}
+														class="ms-1 text-xs">{m.today_status_view_ban()}</A
+													>
+												{/if}
+											</p>
+										{:else if report.isCorrect}
+											<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+												{m.today_status_correct_hint()}
+											</p>
+										{/if}
+									</div>
+								{/if}
 								{#if canBan && report.source === 'website'}
 									<div class="sm:col-span-2">
 										<Button href={banHref(details)} color="red" outline size="xs" class="gap-1.5">

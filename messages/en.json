@@ -1121,5 +1121,14 @@
 	"today_legend_anonymous": "Was not signed in",
 	"today_legend_location": "Shared the location (the colour shows the accuracy: green is best)",
 	"today_legend_no_location": "Did not share the location",
-	"today_legend_final": "Sent as the final score"
+	"today_legend_final": "Sent as the final score",
+	"today_status": "This score is",
+	"today_status_unknown": "Not rated",
+	"today_status_correct": "Correct",
+	"today_status_fake": "Fake",
+	"today_status_failed": "Could not save. Try again.",
+	"today_status_correct_hint": "Counts towards the device karma in the 02:15 run (reports from the last 24 h).",
+	"today_status_banned": "The sender was banned for 15 days.",
+	"today_status_already_banned": "The sender was already banned.",
+	"today_status_view_ban": "View ban"
 }

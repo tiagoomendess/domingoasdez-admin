@@ -7,6 +7,7 @@ import {
 	scoreReportBans,
 	scoreReports,
 	teams,
+	userUuids,
 	users
 } from '#lib/server/db/schema.ts';
 import {
@@ -17,6 +18,7 @@ import {
 	parseListParams,
 	searchId
 } from '#lib/server/list.ts';
+import { banMatches, type BanTarget } from './form';
 
 export type BanRow = typeof scoreReportBans.$inferSelect;
 
@@ -164,4 +166,32 @@ export async function banReports(ban: Pick<BanRow, 'uuid' | 'ipAddress'>) {
 		isFake: Boolean(row.isFake),
 		sameDevice: Boolean(ban.uuid && row.uuid === ban.uuid)
 	}));
+}
+
+/** The active ban that already covers a sender, if any (see `banMatches`). */
+export async function findMatchingBan(target: BanTarget): Promise<BanRow | null> {
+	const candidates = [
+		target.uuid ? eq(scoreReportBans.uuid, target.uuid) : undefined,
+		target.userId ? eq(scoreReportBans.userId, target.userId) : undefined,
+		target.ipAddress ? eq(scoreReportBans.ipAddress, target.ipAddress) : undefined
+	].filter((condition) => condition !== undefined);
+	if (!candidates.length) return null;
+	const rows = await db
+		.select()
+		.from(scoreReportBans)
+		.where(and(gt(scoreReportBans.expiresAt, new Date()), or(...candidates)))
+		.orderBy(desc(scoreReportBans.id));
+	return rows.find((ban) => banMatches(ban, target)) ?? null;
+}
+
+/** Legacy `UserUuid::getLastKnownUserId`: the last user seen signed in on a device. */
+export async function lastKnownUserId(uuid: string | null): Promise<number | null> {
+	if (!uuid) return null;
+	const [row] = await db
+		.select({ userId: userUuids.userId })
+		.from(userUuids)
+		.where(eq(userUuids.uuid, uuid))
+		.orderBy(desc(userUuids.id))
+		.limit(1);
+	return row?.userId ?? null;
 }
