@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Badge, Table, TableBody, TableBodyCell, TableBodyRow, TableHead } from 'flowbite-svelte';
+	import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead } from 'flowbite-svelte';
 	import { resolve } from '$app/paths';
 	import CopyButton from '#lib/components/CopyButton.svelte';
 	import DateTime from '#lib/components/DateTime.svelte';
@@ -61,6 +61,7 @@
 				defaultDir="desc"
 				class="w-20"
 			/>
+			<th class="px-6 py-3">{m.game_comments_team()}</th>
 			<th class="px-6 py-3">{m.game_comments_game()}</th>
 			<th class="px-6 py-3">{m.game_comments_comment()}</th>
 			<SortHeader
@@ -79,16 +80,26 @@
 						>{comment.id}</TableBodyCell
 					>
 					<TableBodyCell class="align-top whitespace-normal">
+						<span class="flex items-center gap-2">
+							<img src={comment.teamEmblem} alt="" class="size-6 object-contain" loading="lazy" />
+							<span>
+								<span class="block font-medium text-gray-900 dark:text-white"
+									>{comment.teamClub}</span
+								>
+								<span class="block text-xs text-gray-500 dark:text-gray-400">
+									{comment.side === 'home' ? m.game_comments_home() : m.game_comments_away()}
+								</span>
+							</span>
+						</span>
+					</TableBodyCell>
+					<TableBodyCell class="align-top whitespace-normal">
 						<a
 							href={resolve('/(app)/game-comments/[id=id]', { id: comment.id })}
 							class="font-medium text-gray-900 hover:text-primary-700 hover:underline dark:text-white dark:hover:text-primary-400"
 						>
 							{comment.homeClub} vs {comment.awayClub}
 						</a>
-						<span class="mt-1 flex flex-wrap items-center gap-1.5">
-							<Badge color={comment.side === 'home' ? 'blue' : 'yellow'}>
-								{comment.side === 'home' ? m.game_comments_home() : m.game_comments_away()} · {comment.teamClub}
-							</Badge>
+						<span class="mt-1 flex">
 							<StatusBadge status={comment.status} />
 						</span>
 					</TableBodyCell>

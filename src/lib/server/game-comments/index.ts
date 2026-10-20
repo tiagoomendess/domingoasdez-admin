@@ -89,6 +89,7 @@ const rowColumns = {
 	awayClub: awayClubs.name,
 	awayEmblem: awayClubs.emblem,
 	teamClub: answerClubs.name,
+	teamEmblem: answerClubs.emblem,
 	teamName: answerTeams.name
 };
 
@@ -110,6 +111,7 @@ const present = (row: Row, now = new Date()) => ({
 	...row,
 	homeEmblem: emblemUrl(row.homeEmblem),
 	awayEmblem: emblemUrl(row.awayEmblem),
+	teamEmblem: emblemUrl(row.teamEmblem),
 	side: row.teamId === row.homeTeamId ? ('home' as const) : ('away' as const),
 	status: commentStatus(row, now)
 });
