@@ -35,6 +35,7 @@
 		describedBy,
 		clearable = !required,
 		params,
+		noneLabel,
 		onchange
 	}: {
 		name: string;
@@ -54,6 +55,8 @@
 		clearable?: boolean;
 		/** Extra query parameters for the endpoint (e.g. a filter by team); the list reloads when they change. */
 		params?: Record<string, string>;
+		/** A clearable select lists this first (e.g. "Sem equipa") to go back to nothing selected. */
+		noneLabel?: string;
 		onchange?: (option: Option | null) => void;
 	} = $props();
 
@@ -187,6 +190,17 @@
 		input?.focus();
 	}
 
+	/** The admin emptied the text of an optional selection: leaving or confirming clears it. */
+	const emptied = () => clearable && typing && !text.trim() && value !== null;
+
+	/** Leaves the list, clearing an emptied optional selection instead of restoring it. */
+	function commitEmpty() {
+		value = null;
+		shownValue = null;
+		close();
+		onchange?.(null);
+	}
+
 	/** Repeats the request that failed: the first page, or the next one. */
 	function retry() {
 		load(query ?? searchText(), items.length ? page + 1 : 1);
@@ -228,7 +242,9 @@
 				if (!open) return;
 				// Never submit the form while choosing.
 				event.preventDefault();
-				if (items[activeIndex]) select(items[activeIndex]);
+				// Emptied text means "nothing", not the first option of the full list.
+				if (emptied()) commitEmpty();
+				else if (items[activeIndex]) select(items[activeIndex]);
 				break;
 			case 'Escape':
 				if (!open) return;
@@ -237,7 +253,9 @@
 				close();
 				break;
 			case 'Tab':
-				if (open) close();
+				// `close()` would put the old label back before the field loses focus.
+				if (open && emptied()) commitEmpty();
+				else if (open) close();
 				break;
 		}
 	}
@@ -245,12 +263,8 @@
 	function onfocusout(event: FocusEvent) {
 		if (root?.contains(event.relatedTarget as Node | null)) return;
 		// Emptying the text and leaving the field clears an optional selection.
-		if (open && clearable && typing && !text.trim() && value) {
-			value = null;
-			shownValue = null;
-			onchange?.(null);
-		}
-		if (open) close();
+		if (open && emptied()) commitEmpty();
+		else if (open) close();
 	}
 
 	function onscroll() {
@@ -349,6 +363,19 @@
 			class="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 text-sm shadow-lg dark:border-gray-600 dark:bg-gray-700"
 			{onscroll}
 		>
+			{#if noneLabel && clearable && value && (!typing || !text.trim())}
+				<li role="presentation">
+					<button
+						type="button"
+						tabindex="-1"
+						class="w-full px-3 py-2 text-start text-gray-600 italic hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
+						onmousedown={(event) => event.preventDefault()}
+						onclick={commitEmpty}
+					>
+						{noneLabel}
+					</button>
+				</li>
+			{/if}
 			{#each items as item, index (item.value)}
 				{@const selected = item.value === value?.value}
 				<!-- Keyboard selection happens on the input (aria-activedescendant). -->

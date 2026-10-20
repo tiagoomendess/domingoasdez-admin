@@ -90,6 +90,7 @@
 								value={team}
 								label={m.team_agents_current_team()}
 								placeholder={m.select_search_teams()}
+								noneLabel={m.team_agents_no_team()}
 								invalid={field.invalid}
 								describedBy={field.describedBy}
 								disabled={readonly}

@@ -197,6 +197,7 @@
 						: defaults.team}
 					label={m.players_team()}
 					placeholder={m.select_search_teams()}
+					noneLabel={m.team_agents_no_team()}
 					invalid={errorsOf('team_id').length > 0}
 				/>
 				<Helper class="mt-1">{m.team_agents_history_team_hint()}</Helper>

@@ -34,12 +34,13 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-function setup(value: Option | null = null) {
+function setup(value: Option | null = null, extra: { noneLabel?: string } = {}) {
 	const screen = render(SearchSelect, {
 		name: 'club_id',
 		endpoint: '/api/options/clubs',
 		value,
-		label: 'Clube'
+		label: 'Clube',
+		...extra
 	});
 	const hidden = () =>
 		screen.container.querySelector<HTMLInputElement>('input[type="hidden"][name="club_id"]')!;
@@ -155,6 +156,39 @@ describe('SearchSelect.svelte', () => {
 
 		await page.getByRole('button', { name: /limpar|clear/i }).click();
 		await expect.element(page.getByRole('combobox')).toHaveValue('');
+		expect(hidden().value).toBe('');
+	});
+
+	it('Enter on emptied text clears the selection instead of picking the first option', async () => {
+		const { combobox, hidden } = setup({ value: 9, label: 'Clube 9' });
+
+		await combobox.click();
+		await userEvent.clear(combobox);
+		await expect.element(page.getByRole('option').first()).toBeVisible();
+		await userEvent.keyboard('{Enter}');
+
+		await expect.element(combobox).toHaveValue('');
+		expect(hidden().value).toBe('');
+	});
+
+	it('Tab on emptied text clears the selection instead of restoring it', async () => {
+		const { combobox, hidden } = setup({ value: 9, label: 'Clube 9' });
+
+		await combobox.click();
+		await userEvent.clear(combobox);
+		await userEvent.keyboard('{Tab}');
+
+		await expect.element(combobox).toHaveValue('');
+		expect(hidden().value).toBe('');
+	});
+
+	it('lists a "none" choice first when given one', async () => {
+		const { combobox, hidden } = setup({ value: 9, label: 'Clube 9' }, { noneLabel: 'Sem clube' });
+
+		await combobox.click();
+		await page.getByRole('button', { name: 'Sem clube' }).click();
+
+		await expect.element(combobox).toHaveValue('');
 		expect(hidden().value).toBe('');
 	});
 });
