@@ -1,15 +1,17 @@
 /**
- * Drizzle mirror of the legacy Laravel database (E:\Projetos\DomingoAsDez\database\migrations).
+ * Schema of the database shared with the legacy Laravel site and domingoasdez-app. It was built
+ * by the Laravel migrations (E:\Projetos\DomingoAsDez\database\migrations) up to
+ * drizzle/migrations/0000_baseline.sql; this file is now the source of truth.
  *
- * Generated with `drizzle-kit pull` and then curated:
+ * First generated with `drizzle-kit pull` and then curated:
  * - `tinyint(1)` flags are `boolean()`
  * - TIMESTAMP / DATETIME columns are `Date` (UTC); calendar dates stay strings
  * - `created_at` / `updated_at` are filled automatically (see ./columns.ts)
  * - the `migrations` table is left out
  *
- * Laravel owns this schema. Never push or migrate it from here. When a Laravel migration lands,
- * run `npm run db:pull` and port the differences by hand. Tables keep the order and names of the
- * introspection output so the two files are easy to diff.
+ * Change it through migrations: edit this file, then `npm run db:generate -- --name <what>` and
+ * review the SQL (docs/architecture.md, "Migrations"). Never `drizzle-kit push`. Tables keep the
+ * order and names of the introspection output so `npm run db:pull` diffs stay readable.
  */
 import {
 	bigint,
@@ -180,7 +182,15 @@ export const gameComments = mysqlTable(
 		content: text('content').notNull(),
 		used: boolean('used').notNull().default(false),
 		deadline: timestamp('deadline').notNull().defaultNow(),
-		...timestamps
+		// Unlike the other tables, the live columns got MySQL defaults when Laravel created them.
+		createdAt: timestamp('created_at')
+			.defaultNow()
+			.$defaultFn(() => new Date()),
+		updatedAt: timestamp('updated_at')
+			.defaultNow()
+			.onUpdateNow()
+			.$defaultFn(() => new Date())
+			.$onUpdateFn(() => new Date())
 	},
 	(table) => [
 		index('game_comments_team_id_index').on(table.teamId),

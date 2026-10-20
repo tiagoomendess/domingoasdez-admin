@@ -51,3 +51,44 @@ jobs:
           name: playwright-traces
           path: test-results/
           retention-days: 7
+
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci
+          MYSQL_DATABASE: ci
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DATABASE_URL: mysql://root:ci@127.0.0.1:3306/ci
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Migration files are consistent
+        run: npm run db:check
+
+      # Builds the whole schema from scratch: the baseline plus every migration.
+      - name: Apply migrations to an empty database
+        run: npm run db:migrate
+
+      - name: schema.ts has no changes without a migration
+        run: |
+          npm run db:generate
+          if [ -n "$(git status --porcelain drizzle/)" ]; then
+            git status --porcelain drizzle/
+            echo "::error::schema.ts changed without a migration: run npm run db:generate and commit it"
+            exit 1
+          fi

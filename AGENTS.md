@@ -44,9 +44,14 @@ controller (`app/Http/Controllers/Resources/*Controller.php`) and view
 
 ## Rules
 
-- **Never change the database schema.** No `drizzle-kit push/generate/migrate`, no DDL. Laravel
-  migrations own it; mirror changes into `src/lib/server/db/schema.ts` by hand (`npm run db:pull`).
-- Don't write to the local `dad_db` unless the user asks; the legacy site and the public app use it.
+- **Schema changes only through migrations** (docs/architecture.md, "Migrations"): edit
+  `src/lib/server/db/schema.ts`, `npm run db:generate -- --name <what>`, review the SQL. Follow the
+  compatibility rules (expand, then contract: the legacy jobs and the public app share the DB).
+  Never `drizzle-kit push`, never edit an applied migration, no DDL outside migrations, no new
+  Laravel migrations.
+- Locally the legacy site, the public app and this admin share one database, `dad_db` (a
+  production dump, like production's single database). Writing test data and running
+  `npm run db:migrate` there is fine; never touch the production database or R2 bucket.
 - Every `load`, form action and endpoint calls `requirePermission(...)` from
   `#lib/server/auth/guard.ts` with the legacy permission name (`<resource>`, `.create`, `.edit`).
 - Every create / update / delete calls `audit()` from `#lib/server/audit.ts` with before/after rows.
