@@ -3,7 +3,8 @@
 This admin replaces the backoffice of the legacy Laravel site (`E:\Projetos\DomingoAsDez`). The
 public site is being replaced separately by `domingoasdez-app`. All three apps share one MySQL
 database and one Cloudflare R2 bucket during the transition, so **compatibility with the legacy
-data model is the first rule**.
+data model is the first rule**. The admin owns the database schema (migrations); the legacy jobs
+and the public app must keep working with every change.
 
 ## Scope
 
@@ -45,10 +46,9 @@ and JSON endpoints under `/api/` for client-side data (searchable dropdowns).
 
 ## Database
 
-- `src/lib/server/db/schema.ts` mirrors the live schema (introspected with `drizzle-kit pull`,
-  then curated). **Laravel migrations own the schema.** Never run `drizzle-kit push/generate/
-migrate`; those scripts were removed on purpose. After a Laravel migration, run
-  `npm run db:pull` and port the diff from `./drizzle/schema.ts` by hand.
+- **This app owns the schema** (see "Migrations" below). `src/lib/server/db/schema.ts` is the
+  source of truth; the legacy site no longer gets Laravel migrations and `domingoasdez-app` only
+  mirrors the tables it uses.
 - `created_at` / `updated_at` are filled automatically (`timestamps` in `db/columns.ts`), like
   Eloquent does. Don't set them by hand.
 - Laravel runs in UTC and stores naive datetimes. The pool uses `dateStrings: true` +
@@ -60,6 +60,55 @@ migrate`; those scripts were removed on purpose. After a Laravel migration, run
 - `POINT` columns (`playgrounds.location`, `score_reports.location`) use the `latLngPoint` type.
   The legacy convention is `POINT(lat lng)` with SRID 0: **X is the latitude**.
 - Relations for `db.query.*` live in `db/relations.ts`.
+
+### Migrations
+
+Schema changes are drizzle-kit migrations in `drizzle/migrations/` (SQL, journal and snapshots,
+all committed). `0000_baseline.sql` is the schema the 75 Laravel migrations built (up to
+`2026_09_25_114800`); a fresh database built from it is identical to production. Existing
+databases never run it: `npm run db:baseline` (`scripts/db-baseline.ts`) records it as applied,
+once per database. Laravel's own `migrations` table is left alone until the legacy site is
+retired.
+
+Workflow:
+
+1. Edit `schema.ts` (and `relations.ts`).
+2. `npm run db:generate -- --name <what_changes>`, then read the SQL and fix it if needed. Data
+   migrations / backfills: `npm run db:generate -- --custom --name <what>`.
+3. `npm run db:migrate` on the local `dad_db` (shared by all three apps, as in production), then
+   check that the admin, the legacy site and the public app still work.
+4. Commit the schema change, the migration and the code that needs it together.
+
+`npm run db:pull` introspects a database into `drizzle/pull/` (git-ignored) to look for drift;
+`npm run db:check` checks the migration files. Never use `drizzle-kit push`, and never edit a
+migration that has been applied anywhere: add a new one.
+
+**Compatibility rules.** The legacy Laravel jobs (still running), this admin and
+`domingoasdez-app` are deployed independently on the same database, so a migration must work with
+the versions of all three that are already running:
+
+- Expand, then contract: new columns are nullable or have a default (Eloquent inserts don't set
+  them). Renames and drops take several steps: add the new column, backfill, move every reader
+  (Laravel jobs included), and only then drop the old one in a later migration.
+- No `NOT NULL` without a default on existing tables; don't remove enum values still used.
+- Large tables (`audit`, `score_reports`, `games`, `goals`): check the row count, prefer
+  `ALGORITHM=INPLACE, LOCK=NONE` where MySQL allows it, and migrate off-peak (not on Sunday).
+- New tables follow the Laravel conventions: `int unsigned` ids, snake_case, `timestamps` from
+  `db/columns.ts`, UTC. They inherit the database default collation, which migration
+  `0001_database_collation` sets to Laravel's `utf8mb4_unicode_ci` (production defaulted to
+  `utf8mb4_general_ci`); a different collation breaks joins and comparisons with the existing
+  tables ("Illegal mix of collations"). `db:baseline` refuses databases whose tables aren't
+  `utf8mb4_unicode_ci`.
+- One logical change per migration. MySQL commits every DDL statement, so a migration that fails
+  halfway stays half applied: drizzle's transaction does not roll it back.
+- Order matters: drizzle only runs migrations newer than the last applied one, so a migration
+  generated on an old branch and merged after a newer one would be skipped. Regenerate it on top
+  of `master` before merging (`migrations.spec.ts` checks the journal order).
+
+**Production** runs migrations as an explicit deploy step (README, "Deployment"), never at
+startup, with `MIGRATION_DATABASE_URL`: a user with DDL rights, so the apps' runtime users can
+stay limited to `SELECT/INSERT/UPDATE/DELETE`. CI builds an empty MySQL 8.0 database from the
+migrations and fails when `schema.ts` has changes without a migration.
 
 ## Authentication and permissions
 

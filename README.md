@@ -34,25 +34,31 @@ npm run dev
 Open <http://localhost:5173> and sign in with a legacy account that has the `dashboard` (or
 `admin`) permission.
 
-> The admin **writes** to the database it points at. For experiments, point `DATABASE_URL` at a
-> copy of `dad_db` rather than the database the legacy site and the public app use.
+> Locally the admin, the legacy site and the public app share one database, `dad_db`, loaded
+> from a production dump, the same layout as production. The admin **writes** to it, so the
+> other two see your test data.
 
 ## Scripts
 
-| Script                              | What it does                                                     |
-| ----------------------------------- | ---------------------------------------------------------------- |
-| `npm run dev`                       | Dev server on :5173                                              |
-| `npm run build` / `npm run preview` | Production build (`build/`) / preview it on :4173                |
-| `npm start`                         | Run the production build with `.env`                             |
-| `npm run check`                     | Type check (svelte-check)                                        |
-| `npm run lint` / `npm run format`   | Prettier + ESLint / format everything                            |
-| `npm run test:unit`                 | Vitest (server tests in Node, `*.svelte.spec.ts` in Chromium)    |
-| `npm run test:e2e`                  | Playwright against the production build (no database needed)     |
-| `npm run validate`                  | lint + check + unit tests (run before pushing)                   |
-| `npm run db:pull`                   | Introspect the live DB into `./drizzle/` to diff with the schema |
-| `npm run db:studio`                 | Drizzle Studio                                                   |
+| Script                              | What it does                                                  |
+| ----------------------------------- | ------------------------------------------------------------- |
+| `npm run dev`                       | Dev server on :5173                                           |
+| `npm run build` / `npm run preview` | Production build (`build/`) / preview it on :4173             |
+| `npm start`                         | Run the production build with `.env`                          |
+| `npm run check`                     | Type check (svelte-check)                                     |
+| `npm run lint` / `npm run format`   | Prettier + ESLint / format everything                         |
+| `npm run test:unit`                 | Vitest (server tests in Node, `*.svelte.spec.ts` in Chromium) |
+| `npm run test:e2e`                  | Playwright against the production build (no database needed)  |
+| `npm run validate`                  | lint + check + unit tests (run before pushing)                |
+| `npm run db:generate -- --name <x>` | New migration from the changes in `schema.ts`                 |
+| `npm run db:migrate`                | Apply pending migrations                                      |
+| `npm run db:baseline`               | Mark an existing (Laravel-built) DB as migrated up to 0000    |
+| `npm run db:check`                  | Check the migration files                                     |
+| `npm run db:pull`                   | Introspect the DB into `./drizzle/pull/` to look for drift    |
+| `npm run db:studio`                 | Drizzle Studio                                                |
 
-There is deliberately no `db:push` / `db:migrate`: Laravel migrations own the schema.
+This app owns the database schema: see [Migrations](docs/architecture.md#migrations). There is
+deliberately no `db:push`.
 
 ## Project structure
 
@@ -75,6 +81,8 @@ src/
     (app)/                  everything behind the login (shell layout)
     login/  logout/  healthz/
 messages/                   pt-PT (base) and en translations
+drizzle/migrations/         schema migrations (this app owns the database schema)
+scripts/                    db-baseline.ts
 docs/                       architecture and conventions
 ```
 
@@ -83,12 +91,22 @@ docs/                       architecture and conventions
 Same setup as `domingoasdez-app`: Node + PM2 behind nginx (and Cloudflare).
 
 ```bash
-npm ci && npm run build
+npm ci
+```
+
+When the release has new migrations, back up the database first (`mysqldump --single-transaction`
+or a host snapshot), then:
+
+```bash
+npm run db:migrate
 ```
 
 ```bash
-pm2 startOrReload ecosystem.config.cjs
+npm run build && pm2 startOrReload ecosystem.config.cjs
 ```
+
+Deploy `domingoasdez-app` after the admin when it uses the new columns. The first time only, mark
+the production database as migrated with `npm run db:baseline` (before any `db:migrate`).
 
 Set the production variables in `.env` (`ORIGIN`, `PORT`, `PROTOCOL_HEADER`,
 `ADDRESS_HEADER=CF-Connecting-IP`, `BODY_SIZE_LIMIT` for uploads — see `.env.example`). nginx

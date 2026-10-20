@@ -31,5 +31,5 @@ coverage
 src/lib/paraglide
 project.inlang/cache/
 
-# `npm run db:pull` introspection output (reference only, never migrated)
-/drizzle
+# `npm run db:pull` introspection output (reference only, never migrated). drizzle/migrations is committed.
+/drizzle/pull
