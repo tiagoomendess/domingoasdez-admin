@@ -50,8 +50,15 @@ controller (`app/Http/Controllers/Resources/*Controller.php`) and view
   Never `drizzle-kit push`, never edit an applied migration, no DDL outside migrations, no new
   Laravel migrations.
 - Locally the legacy site, the public app and this admin share one database, `dad_db` (a
-  production dump, like production's single database). Writing test data and running
+  production dump, like production's single database, in the local Docker MySQL). Running
   `npm run db:migrate` there is fine; never touch the production database or R2 bucket.
+- **Temporary test data: direct SQL on the local Docker `dad_db` only.** To set up a case to
+  check in the UI (move a game's date, add votes, change scores, …) you may run
+  `INSERT` / `UPDATE` / `DELETE` against it directly. Note the original values first and put
+  them back after the test (delete the rows you added) whenever possible, and report what you
+  changed and whether it was restored. Data only, never DDL; lasting changes to schema or data
+  go through migrations. The local legacy jobs run on the same data (Mailgun mail to real
+  users, social media publishing), so avoid changes that would trigger them.
 - Every `load`, form action and endpoint calls `requirePermission(...)` from
   `#lib/server/auth/guard.ts` with the legacy permission name (`<resource>`, `.create`, `.edit`).
 - Every create / update / delete calls `audit()` from `#lib/server/audit.ts` with before/after rows.
