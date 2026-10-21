@@ -15,6 +15,27 @@
       "when": 1792527909070,
       "tag": "0001_database_collation",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1792535602516,
+      "tag": "0002_match_comments",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1792536889598,
+      "tag": "0003_article_comment_votes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1792576314064,
+      "tag": "0004_game_predictions",
+      "breakpoints": true
     }
   ]
 }

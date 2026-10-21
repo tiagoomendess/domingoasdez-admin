@@ -53,6 +53,8 @@ Open <http://localhost:5173> and sign in with a legacy account that has the `das
 | `npm run db:generate -- --name <x>` | New migration from the changes in `schema.ts`                 |
 | `npm run db:migrate`                | Apply pending migrations                                      |
 | `npm run db:baseline`               | Mark an existing (Laravel-built) DB as migrated up to 0000    |
+| `npm run db:pending`                | List the migrations `db:migrate` would apply                  |
+| `npm run db:backup -- [dir]`        | Gzipped mysqldump into `./backups` (or `dir`)                 |
 | `npm run db:check`                  | Check the migration files                                     |
 | `npm run db:pull`                   | Introspect the DB into `./drizzle/pull/` to look for drift    |
 | `npm run db:studio`                 | Drizzle Studio                                                |
@@ -82,31 +84,32 @@ src/
     login/  logout/  healthz/
 messages/                   pt-PT (base) and en translations
 drizzle/migrations/         schema migrations (this app owns the database schema)
-scripts/                    db-baseline.ts
+scripts/                    deploy.sh, db-baseline.ts, db-pending.ts, db-backup.ts
 docs/                       architecture and conventions
 ```
 
 ## Deployment
 
-Same setup as `domingoasdez-app`: Node + PM2 behind nginx (and Cloudflare).
+Same setup as `domingoasdez-app`: Node + PM2 behind nginx (and Cloudflare). On the server, from
+the repository and as the user that owns the PM2 process:
 
 ```bash
-npm ci
+scripts/deploy.sh
 ```
 
-When the release has new migrations, back up the database first (`mysqldump --single-transaction`
-or a host snapshot), then:
+It pulls `master` (fast-forward only; it stops if tracked files were changed on the server),
+runs `npm ci` when `package-lock.json` or the Node version changed, builds into `build.next`
+while the current build keeps serving, and when there are pending migrations (`npm run db:pending`)
+dumps the database to `./backups` (`npm run db:backup`, needs `mysqldump`, newest 5 kept) and
+runs `npm run db:migrate`. Then it swaps the build in (the old one stays as `build.prev`),
+reloads PM2 and checks `/healthz`. `--help` lists the options: `--force` (redeploy without new
+commits, e.g. after a failure), `--skip-backup`, `--rollback` (serve `build.prev` again).
 
-```bash
-npm run db:migrate
-```
+Deploy `domingoasdez-app` after the admin when it uses the new columns.
 
-```bash
-npm run build && pm2 startOrReload ecosystem.config.cjs
-```
-
-Deploy `domingoasdez-app` after the admin when it uses the new columns. The first time only, mark
-the production database as migrated with `npm run db:baseline` (before any `db:migrate`).
+First deploy only: clone the repository, create `.env`, mark the production database as migrated
+with `npm run db:baseline` (before any `db:migrate`), run `scripts/deploy.sh --force`, then
+`pm2 save` (and `pm2 startup` once per server) so the process comes back after a reboot.
 
 Set the production variables in `.env` (`ORIGIN`, `PORT`, `PROTOCOL_HEADER`,
 `ADDRESS_HEADER=CF-Connecting-IP`, `BODY_SIZE_LIMIT` for uploads — see `.env.example`). nginx

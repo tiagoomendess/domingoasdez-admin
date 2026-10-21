@@ -1,5 +1,5 @@
-// PM2 process file, same setup as domingoasdez-app. Build first (`npm ci && npm run build`),
-// then `pm2 startOrReload ecosystem.config.cjs`. Runtime settings (PORT, ORIGIN, …) live in .env.
+// PM2 process file, same setup as domingoasdez-app. Deploys go through scripts/deploy.sh (build,
+// migrations, `pm2 startOrReload ecosystem.config.cjs`). Runtime settings (PORT, ORIGIN, …) live in .env.
 module.exports = {
 	apps: [
 		{

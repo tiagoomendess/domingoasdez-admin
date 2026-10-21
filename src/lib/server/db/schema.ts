@@ -42,6 +42,28 @@ export const teamAgentTypes = [
 	'director'
 ] as const;
 
+/** Up/down votes on article comments: one per user and comment, `value` is +1 or -1. */
+export const articleCommentVotes = mysqlTable(
+	'article_comment_votes',
+	{
+		id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+		articleCommentId: int('article_comment_id', { unsigned: true })
+			.notNull()
+			.references(() => articleComments.id, { onDelete: 'cascade' }),
+		userId: int('user_id', { unsigned: true })
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		value: tinyint('value').notNull(),
+		...timestamps
+	},
+	(table) => [
+		unique('article_comment_votes_article_comment_id_user_id_unique').on(
+			table.articleCommentId,
+			table.userId
+		)
+	]
+);
+
 export const articleComments = mysqlTable(
 	'article_comments',
 	{
@@ -212,6 +234,28 @@ export const gameGroups = mysqlTable('game_groups', {
 	...timestamps
 });
 
+/**
+ * Score predictions on the public game page: one per user and game, editable until kick-off.
+ * `penalty_winner` is only set for elimination games predicted to end level.
+ */
+export const gamePredictions = mysqlTable(
+	'game_predictions',
+	{
+		id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+		gameId: int('game_id', { unsigned: true })
+			.notNull()
+			.references(() => games.id, { onDelete: 'cascade' }),
+		userId: int('user_id', { unsigned: true })
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		goalsHome: tinyint('goals_home', { unsigned: true }).notNull(),
+		goalsAway: tinyint('goals_away', { unsigned: true }).notNull(),
+		penaltyWinner: mysqlEnum('penalty_winner', ['home', 'away']),
+		...timestamps
+	},
+	(table) => [unique('game_predictions_game_id_user_id_unique').on(table.gameId, table.userId)]
+);
+
 export const gameReferees = mysqlTable('game_referees', {
 	id: int('id', { unsigned: true }).autoincrement().primaryKey(),
 	gameId: int('game_id', { unsigned: true })
@@ -339,6 +383,59 @@ export const infoReports = mysqlTable(
 		...timestamps
 	},
 	(table) => [unique('info_reports_code_unique').on(table.code)]
+);
+
+/**
+ * Comments on a game by signed-in users (domingoasdez-app game page). Not the flash interviews,
+ * which are `game_comments`. Same shape as `article_comments`: one level of replies, soft delete.
+ */
+export const matchComments = mysqlTable(
+	'match_comments',
+	{
+		id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+		gameId: int('game_id', { unsigned: true })
+			.notNull()
+			.references(() => games.id, { onDelete: 'cascade' }),
+		/** Parent comment for replies; null for a top-level comment. */
+		matchCommentId: int('match_comment_id', { unsigned: true }),
+		/** Nullable so an account deletion can wipe it, as with `article_comments`. */
+		content: text('content'),
+		userId: int('user_id', { unsigned: true })
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		deleted: boolean('deleted').notNull().default(false),
+		...timestamps
+	},
+	(table) => [
+		index('match_comments_game_id_created_at_index').on(table.gameId, table.createdAt),
+		foreignKey({
+			columns: [table.matchCommentId],
+			foreignColumns: [table.id],
+			name: 'match_comments_match_comment_id_foreign'
+		}).onDelete('cascade')
+	]
+);
+
+/** Up/down votes on match comments: one per user and comment, `value` is +1 or -1. */
+export const matchCommentVotes = mysqlTable(
+	'match_comment_votes',
+	{
+		id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+		matchCommentId: int('match_comment_id', { unsigned: true })
+			.notNull()
+			.references(() => matchComments.id, { onDelete: 'cascade' }),
+		userId: int('user_id', { unsigned: true })
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		value: tinyint('value').notNull(),
+		...timestamps
+	},
+	(table) => [
+		unique('match_comment_votes_match_comment_id_user_id_unique').on(
+			table.matchCommentId,
+			table.userId
+		)
+	]
 );
 
 export const mediaTypes = ['none', 'image', 'video', 'youtube', 'download', 'other'] as const;
