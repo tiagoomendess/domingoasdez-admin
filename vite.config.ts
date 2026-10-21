@@ -31,7 +31,7 @@ export default defineConfig({
 					'media-src': ['self', 'blob:', 'https:', 'http://localhost:*'],
 					'font-src': ['self', 'data:'],
 					'connect-src': ['self'],
-					// The tutorials playlist on the dashboard.
+					// YouTube previews in the media library.
 					'frame-src': ['https://www.youtube-nocookie.com'],
 					'object-src': ['none'],
 					'base-uri': ['self'],
