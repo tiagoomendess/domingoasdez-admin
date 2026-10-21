@@ -4,6 +4,7 @@
  */
 import { relations } from 'drizzle-orm';
 import {
+	articleCommentVotes,
 	articleComments,
 	articles,
 	clubs,
@@ -11,11 +12,14 @@ import {
 	deleteRequests,
 	gameComments,
 	gameGroups,
+	gamePredictions,
 	gameReferees,
 	games,
 	goals,
 	groupRules,
 	groupRulesPositions,
+	matchCommentVotes,
+	matchComments,
 	media,
 	mvpVotes,
 	permissions,
@@ -47,7 +51,16 @@ export const articleCommentsRelations = relations(articleComments, ({ one, many 
 	}),
 	replies: many(articleComments, { relationName: 'articleCommentReplies' }),
 	article: one(articles, { fields: [articleComments.articleId], references: [articles.id] }),
-	user: one(users, { fields: [articleComments.userId], references: [users.id] })
+	user: one(users, { fields: [articleComments.userId], references: [users.id] }),
+	votes: many(articleCommentVotes)
+}));
+
+export const articleCommentVotesRelations = relations(articleCommentVotes, ({ one }) => ({
+	comment: one(articleComments, {
+		fields: [articleCommentVotes.articleCommentId],
+		references: [articleComments.id]
+	}),
+	user: one(users, { fields: [articleCommentVotes.userId], references: [users.id] })
 }));
 
 export const articlesRelations = relations(articles, ({ one, many }) => ({
@@ -59,10 +72,14 @@ export const articlesRelations = relations(articles, ({ one, many }) => ({
 export const usersRelations = relations(users, ({ one, many }) => ({
 	profile: one(userProfiles),
 	articleComments: many(articleComments),
+	articleCommentVotes: many(articleCommentVotes),
 	articles: many(articles),
 	administeredClubs: many(clubs),
 	deleteRequests: many(deleteRequests),
 	gameComments: many(gameComments),
+	gamePredictions: many(gamePredictions),
+	matchComments: many(matchComments),
+	matchCommentVotes: many(matchCommentVotes),
 	media: many(media),
 	mvpVotes: many(mvpVotes),
 	reviewedPlayerUpdateRequests: many(playerUpdateRequests),
@@ -94,8 +111,34 @@ export const gameCommentsRelations = relations(gameComments, ({ one }) => ({
 	user: one(users, { fields: [gameComments.userId], references: [users.id] })
 }));
 
+export const matchCommentsRelations = relations(matchComments, ({ one, many }) => ({
+	parent: one(matchComments, {
+		fields: [matchComments.matchCommentId],
+		references: [matchComments.id],
+		relationName: 'matchCommentReplies'
+	}),
+	replies: many(matchComments, { relationName: 'matchCommentReplies' }),
+	game: one(games, { fields: [matchComments.gameId], references: [games.id] }),
+	user: one(users, { fields: [matchComments.userId], references: [users.id] }),
+	votes: many(matchCommentVotes)
+}));
+
+export const matchCommentVotesRelations = relations(matchCommentVotes, ({ one }) => ({
+	comment: one(matchComments, {
+		fields: [matchCommentVotes.matchCommentId],
+		references: [matchComments.id]
+	}),
+	user: one(users, { fields: [matchCommentVotes.userId], references: [users.id] })
+}));
+
+export const gamePredictionsRelations = relations(gamePredictions, ({ one }) => ({
+	game: one(games, { fields: [gamePredictions.gameId], references: [games.id] }),
+	user: one(users, { fields: [gamePredictions.userId], references: [users.id] })
+}));
+
 export const gamesRelations = relations(games, ({ one, many }) => ({
 	gameComments: many(gameComments),
+	predictions: many(gamePredictions),
 	gameReferees: many(gameReferees),
 	homeTeam: one(teams, {
 		fields: [games.homeTeamId],
@@ -110,6 +153,7 @@ export const gamesRelations = relations(games, ({ one, many }) => ({
 	gameGroup: one(gameGroups, { fields: [games.gameGroupId], references: [gameGroups.id] }),
 	playground: one(playgrounds, { fields: [games.playgroundId], references: [playgrounds.id] }),
 	goals: many(goals),
+	matchComments: many(matchComments),
 	mvpVotes: many(mvpVotes)
 }));
 

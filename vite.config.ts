@@ -16,7 +16,8 @@ export default defineConfig({
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
-			adapter: adapter(),
+			// scripts/deploy.sh builds into build.next while build/ keeps serving.
+			adapter: adapter({ out: process.env.BUILD_DIR || 'build' }),
 			csp: {
 				mode: 'auto',
 				directives: {
