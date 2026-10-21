@@ -17,7 +17,7 @@
 
 <script lang="ts">
 	import { Button, Card } from 'flowbite-svelte';
-	import { ArrowRightOutline } from 'flowbite-svelte-icons';
+	import { ArrowDownOutline, ArrowRightOutline, ArrowUpOutline } from 'flowbite-svelte-icons';
 	import type { Component, Snippet } from 'svelte';
 	import { formatNumber } from '#lib/format.ts';
 	import { getLocale } from '#lib/paraglide/runtime.js';
@@ -28,6 +28,7 @@
 		tone,
 		value,
 		description,
+		comparison,
 		href,
 		linkLabel,
 		children
@@ -38,11 +39,30 @@
 		/** The metric. Omit it to render `children` (a list) instead. */
 		value?: number;
 		description?: string;
+		/**
+		 * Change of `value` against an earlier one. `upIsGood` colours it green/red; without it the
+		 * change is neutral (e.g. more reports to review is neither good nor bad).
+		 */
+		comparison?: { previous: number; label: string; upIsGood?: boolean };
 		/** Footer link; leave it out when the admin can't open the section. */
 		href?: string;
 		linkLabel?: string;
 		children?: Snippet;
 	} = $props();
+
+	/** Whole-percent change, or null when there is nothing to compare with. */
+	const change = $derived(
+		comparison && value !== undefined && comparison.previous > 0
+			? Math.round(((value - comparison.previous) / comparison.previous) * 100)
+			: null
+	);
+	const changeTone = $derived(
+		change === null || change === 0 || comparison?.upIsGood === undefined
+			? 'text-gray-600 dark:text-gray-400'
+			: change > 0 === comparison.upIsGood
+				? 'text-green-700 dark:text-green-400'
+				: 'text-red-700 dark:text-red-400'
+	);
 </script>
 
 <Card size="xl" class="h-full flex-col p-5">
@@ -62,6 +82,19 @@
 	{/if}
 	{#if description}
 		<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{description}</p>
+	{/if}
+	{#if change !== null && comparison}
+		<p class="mt-1 flex items-center gap-1 text-sm">
+			<span class={['inline-flex items-center gap-0.5 font-semibold', changeTone]}>
+				{#if change > 0}
+					<ArrowUpOutline class="size-3.5" aria-hidden="true" />
+				{:else if change < 0}
+					<ArrowDownOutline class="size-3.5" aria-hidden="true" />
+				{/if}
+				{change > 0 ? '+' : ''}{formatNumber(change, getLocale())}%
+			</span>
+			<span class="text-gray-500 dark:text-gray-400">{comparison.label}</span>
+		</p>
 	{/if}
 	{#if children}
 		<div class="mt-3">{@render children()}</div>
