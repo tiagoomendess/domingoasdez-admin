@@ -13,8 +13,8 @@ while the legacy site keeps running the automated jobs.
 
 ## Getting started
 
-Requirements: Node.js 24 (`.nvmrc`), the legacy MySQL database (local Docker container
-`local-mysql`) and, for uploads, R2 credentials.
+Requirements: Node.js 26.12.1 or newer (`.nvmrc`; `npm install` refuses older versions), the
+legacy MySQL database (local Docker container `local-mysql`) and, for uploads, R2 credentials.
 
 ```bash
 npm install

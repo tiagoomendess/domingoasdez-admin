@@ -132,9 +132,11 @@ pull() {
 check_node() {
 	STEP='checking the Node version'
 	local wanted current
-	wanted="$(tr -dc '0-9' <.nvmrc)"
-	current="$(node -p 'process.versions.node.split(".")[0]')"
-	((current >= wanted)) || fail "Node $wanted+ required (.nvmrc), found $(node -v)"
+	wanted="$(tr -dc '0-9.' <.nvmrc)"
+	current="$(node -p 'process.versions.node')"
+	# .nvmrc is the minimum full version (security patches matter, not just the major).
+	printf '%s\n%s\n' "$wanted" "$current" | sort -C -V ||
+		fail "Node $wanted or newer required (.nvmrc), found $(node -v)"
 }
 
 install() {
