@@ -57,7 +57,7 @@ controller (`app/Http/Controllers/Resources/*Controller.php`) and view
   `INSERT` / `UPDATE` / `DELETE` against it directly. Note the original values first and put
   them back after the test (delete the rows you added) whenever possible, and report what you
   changed and whether it was restored. Data only, never DDL; lasting changes to schema or data
-  go through migrations. The local legacy jobs run on the same data (Mailgun mail to real
+  go through migrations. The local legacy jobs run on the same data (mail to real
   users, social media publishing), so avoid changes that would trigger them.
 - Every `load`, form action and endpoint calls `requirePermission(...)` from
   `#lib/server/auth/guard.ts` with the legacy permission name (`<resource>`, `.create`, `.edit`).

@@ -10,9 +10,11 @@ and the public app must keep working with every change.
 
 - In scope: managing entities (CRUD) and manual review flows (player update requests, info
   reports, score report bans, permissions).
-- Out of scope, stays on the legacy site: cron jobs, queues and artisan commands (social media
-  publishing, game/poll image generation, karma, email outbox, delete requests), the log viewer.
-  The admin only sets the flags those jobs read (e.g. `games.generate_image`, `polls.update_image`).
+- Scheduled jobs (social media publishing, game/poll image generation, karma, delete requests,
+  …) still run on the legacy site and are moving, one at a time, to the worker process in this
+  repository (`src/worker/`, plan and status in [jobs.md](jobs.md)). Until a job is ported the
+  admin only sets the flags it reads (e.g. `games.generate_image`, `polls.update_image`).
+- Out of scope, stays on the legacy site: the log viewer.
 
 ## Porting a legacy section: bugs
 
@@ -264,6 +266,7 @@ create/edit forms and delete, guarded by its permissions and audited.
 | Conteúdo    | `/pages`                  | `pages`                                                   | `pages`                     | Rich-text body, unique slug                                                                                                                                                           |
 | Conteúdo    | `/media`                  | `media`                                                   | `media`                     | Image/video/file uploads to R2, YouTube links, thumbnails                                                                                                                             |
 | Conteúdo    | `/polls`                  | `polls`, `poll_answers`                                   | `polls`                     | Image generation stays on legacy (`update_image`)                                                                                                                                     |
+| Conteúdo    | `/social-media-posts`     | `social_media_posts`                                      | `social_media_posts`        | New (no legacy section): what `publish-social-media` posts; filters, error, edit unpublished, retry ([jobs.md](jobs.md))                                                              |
 | Pessoas     | `/players`                | `players`, `transfers`                                    | `players`                   | Square photo                                                                                                                                                                          |
 | Pessoas     | `/player-update-requests` | `player_update_requests`                                  | `player_update_requests`    | Compare and approve (per field, old photo deleted) / deny; then the next pending request                                                                                              |
 | Pessoas     | `/team-agents`            | `team_agents`, `team_agents_history`                      | `team_agents`               | History: no same team and role twice in a row, no two entries on one day                                                                                                              |

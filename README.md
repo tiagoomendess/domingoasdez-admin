@@ -40,24 +40,27 @@ Open <http://localhost:5173> and sign in with a legacy account that has the `das
 
 ## Scripts
 
-| Script                              | What it does                                                  |
-| ----------------------------------- | ------------------------------------------------------------- |
-| `npm run dev`                       | Dev server on :5173                                           |
-| `npm run build` / `npm run preview` | Production build (`build/`) / preview it on :4173             |
-| `npm start`                         | Run the production build with `.env`                          |
-| `npm run check`                     | Type check (svelte-check)                                     |
-| `npm run lint` / `npm run format`   | Prettier + ESLint / format everything                         |
-| `npm run test:unit`                 | Vitest (server tests in Node, `*.svelte.spec.ts` in Chromium) |
-| `npm run test:e2e`                  | Playwright against the production build (no database needed)  |
-| `npm run validate`                  | lint + check + unit tests (run before pushing)                |
-| `npm run db:generate -- --name <x>` | New migration from the changes in `schema.ts`                 |
-| `npm run db:migrate`                | Apply pending migrations                                      |
-| `npm run db:baseline`               | Mark an existing (Laravel-built) DB as migrated up to 0000    |
-| `npm run db:pending`                | List the migrations `db:migrate` would apply                  |
-| `npm run db:backup -- [dir]`        | Gzipped mysqldump into `./backups` (or `dir`)                 |
-| `npm run db:check`                  | Check the migration files                                     |
-| `npm run db:pull`                   | Introspect the DB into `./drizzle/pull/` to look for drift    |
-| `npm run db:studio`                 | Drizzle Studio                                                |
+| Script                              | What it does                                                                 |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| `npm run dev`                       | Dev server on :5173                                                          |
+| `npm run build` / `npm run preview` | Production build (`build/`, worker in `build/worker/`) / preview it on :4173 |
+| `npm start`                         | Run the production build with `.env`                                         |
+| `npm run worker:build`              | Build only the jobs worker (`build/worker/`)                                 |
+| `npm run worker -- list`            | Worker jobs: schedule, ported, enabled ([docs/jobs.md](docs/jobs.md))        |
+| `npm run worker -- run <job>`       | Run one job now; `npm run worker` starts the scheduler                       |
+| `npm run check`                     | Type check (svelte-check)                                                    |
+| `npm run lint` / `npm run format`   | Prettier + ESLint / format everything                                        |
+| `npm run test:unit`                 | Vitest (server tests in Node, `*.svelte.spec.ts` in Chromium)                |
+| `npm run test:e2e`                  | Playwright against the production build (no database needed)                 |
+| `npm run validate`                  | lint + check + unit tests (run before pushing)                               |
+| `npm run db:generate -- --name <x>` | New migration from the changes in `schema.ts`                                |
+| `npm run db:migrate`                | Apply pending migrations                                                     |
+| `npm run db:baseline`               | Mark an existing (Laravel-built) DB as migrated up to 0000                   |
+| `npm run db:pending`                | List the migrations `db:migrate` would apply                                 |
+| `npm run db:backup -- [dir]`        | Gzipped mysqldump into `./backups` (or `dir`)                                |
+| `npm run db:check`                  | Check the migration files                                                    |
+| `npm run db:pull`                   | Introspect the DB into `./drizzle/pull/` to look for drift                   |
+| `npm run db:studio`                 | Drizzle Studio                                                               |
 
 This app owns the database schema: see [Migrations](docs/architecture.md#migrations). There is
 deliberately no `db:push`.
@@ -82,6 +85,7 @@ src/
   routes/
     (app)/                  everything behind the login (shell layout)
     login/  logout/  healthz/
+  worker/                   background jobs process: scheduler, job registry (docs/jobs.md)
 messages/                   pt-PT (base) and en translations
 drizzle/migrations/         schema migrations (this app owns the database schema)
 scripts/                    deploy.sh, db-baseline.ts, db-pending.ts, db-backup.ts
@@ -104,6 +108,18 @@ dumps the database to `./backups` (`npm run db:backup`, needs `mysqldump`, newes
 runs `npm run db:migrate`. Then it swaps the build in (the old one stays as `build.prev`),
 reloads PM2 and checks `/healthz`. `--help` lists the options: `--force` (redeploy without new
 commits, e.g. after a failure), `--skip-backup`, `--rollback` (serve `build.prev` again).
+
+The same build has the background jobs worker (`build/worker/`, [docs/jobs.md](docs/jobs.md)):
+PM2 runs it as a second app, `domingoasdez-admin-worker`, reloaded with the admin, and the
+deploy waits for its heartbeat. It schedules only the jobs in `WORKER_JOBS` (none by default) and
+sends mail and social posts only with `WORKER_DRY_RUN=false`; mail goes through the site's SMTP
+server (`MAIL_*`, the same values as `domingoasdez-app`). After the first deploy that adds
+it, run `pm2 save` so it also comes back after a reboot. A `--rollback` to a build from before
+the worker existed serves the admin but fails the worker check: `pm2 stop domingoasdez-admin-worker`.
+The posts it publishes are managed in the admin's Social media section (`/social-media-posts`);
+its permissions (`social_media_posts`, `.create`, `.edit`) are new, so create them in Permissions
+before granting the section to anyone but admins. Locally, `FB_GRAPH_URL` points the worker at a
+fake Graph API to test publishing without posting ([docs/jobs.md](docs/jobs.md)).
 
 Deploy `domingoasdez-app` after the admin when it uses the new columns.
 

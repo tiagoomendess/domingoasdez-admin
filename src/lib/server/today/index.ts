@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, inArray, lt, or } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lt, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/mysql-core';
 import { canEditAnyScore, canEditGameScore, type AccessUser } from '#lib/auth/access.ts';
 import { emblemUrl } from '#lib/server/clubs/index.ts';
@@ -8,13 +8,13 @@ import {
 	competitions,
 	gameGroups,
 	games,
-	goals,
 	scoreReports,
 	seasons,
 	teams,
 	users,
 	uuidKarmas
 } from '#lib/server/db/schema.ts';
+import { gameScore, goalCounts } from '#lib/server/games/score.ts';
 import { mediaUrl } from '#lib/server/media.ts';
 import { seasonLabel } from '#lib/seasons.ts';
 import { accuracyLevel, groupByCompetition, reportedScores } from './form';
@@ -65,17 +65,6 @@ const selectGames = () =>
 		.innerJoin(seasons, eq(seasons.id, gameGroups.seasonId))
 		.innerJoin(competitions, eq(competitions.id, seasons.competitionId));
 
-/** Goals per game and team, for games without a typed score (legacy `getTotalHomeGoals`). */
-async function goalCounts(gameIds: number[]) {
-	if (!gameIds.length) return new Map<string, number>();
-	const rows = await db
-		.select({ gameId: goals.gameId, teamId: goals.teamId, total: count() })
-		.from(goals)
-		.where(inArray(goals.gameId, gameIds))
-		.groupBy(goals.gameId, goals.teamId);
-	return new Map(rows.map((row) => [`${row.gameId}:${row.teamId}`, row.total]));
-}
-
 async function latestReports(gameIds: number[]) {
 	if (!gameIds.length) return new Map<number, { homeScore: number; awayScore: number }[]>();
 	const rows = await db
@@ -119,31 +108,29 @@ export async function dayGames(user: AccessUser, range: { start: Date; end: Date
 		);
 
 	const ids = rows.map((row) => row.id);
-	const [counts, reports] = await Promise.all([
-		goalCounts(
-			rows.filter((row) => row.goalsHome === null || row.goalsAway === null).map((row) => row.id)
-		),
-		latestReports(ids)
-	]);
+	const [counts, reports] = await Promise.all([goalCounts(rows), latestReports(ids)]);
 
-	const presented = rows.map((row) => ({
-		id: row.id,
-		date: row.date,
-		round: row.round,
-		finished: Boolean(row.finished),
-		postponed: Boolean(row.postponed),
-		updatedAt: row.updatedAt,
-		goalsHome: row.goalsHome ?? counts.get(`${row.id}:${row.homeTeamId}`) ?? 0,
-		goalsAway: row.goalsAway ?? counts.get(`${row.id}:${row.awayTeamId}`) ?? 0,
-		home: { club: row.homeClub, team: row.homeTeam, emblem: emblemUrl(row.homeEmblem) },
-		away: { club: row.awayClub, team: row.awayTeam, emblem: emblemUrl(row.awayEmblem) },
-		group: `${seasonLabel({ name: row.seasonName, startYear: row.startYear, endYear: row.endYear })} · ${row.groupName}`,
-		reported: reportedScores(reports.get(row.id) ?? []),
-		canEdit: canEditGameScore(user, row),
-		competitionId: row.competitionId,
-		competitionName: row.competitionName,
-		competitionPicture: row.competitionPicture ? mediaUrl(row.competitionPicture) : null
-	}));
+	const presented = rows.map((row) => {
+		const score = gameScore(row, counts);
+		return {
+			id: row.id,
+			date: row.date,
+			round: row.round,
+			finished: Boolean(row.finished),
+			postponed: Boolean(row.postponed),
+			updatedAt: row.updatedAt,
+			goalsHome: score.home,
+			goalsAway: score.away,
+			home: { club: row.homeClub, team: row.homeTeam, emblem: emblemUrl(row.homeEmblem) },
+			away: { club: row.awayClub, team: row.awayTeam, emblem: emblemUrl(row.awayEmblem) },
+			group: `${seasonLabel({ name: row.seasonName, startYear: row.startYear, endYear: row.endYear })} · ${row.groupName}`,
+			reported: reportedScores(reports.get(row.id) ?? []),
+			canEdit: canEditGameScore(user, row),
+			competitionId: row.competitionId,
+			competitionName: row.competitionName,
+			competitionPicture: row.competitionPicture ? mediaUrl(row.competitionPicture) : null
+		};
+	});
 	return groupByCompetition(presented);
 }
 

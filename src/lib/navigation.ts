@@ -56,7 +56,13 @@ export const navigation: NavGroup[] = [
 			{ label: m.nav_articles, href: '/articles', permission: 'articles' },
 			{ label: m.nav_pages, href: '/pages', permission: 'pages' },
 			{ label: m.nav_media, href: '/media', permission: 'media' },
-			{ label: m.nav_polls, href: '/polls', permission: 'polls' }
+			{ label: m.nav_polls, href: '/polls', permission: 'polls' },
+			// Not in the legacy backoffice: the posts the worker publishes (docs/jobs.md).
+			{
+				label: m.nav_social_media_posts,
+				href: '/social-media-posts',
+				permission: 'social_media_posts'
+			}
 		]
 	},
 	{

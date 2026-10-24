@@ -69,6 +69,10 @@ export const PERMISSIONS = [
 	'seasons',
 	'seasons.create',
 	'seasons.edit',
+	// New in this admin (no legacy section): the row is created in Permissions to grant it.
+	'social_media_posts',
+	'social_media_posts.create',
+	'social_media_posts.edit',
 	'team_agents',
 	'team_agents.create',
 	'team_agents.edit',

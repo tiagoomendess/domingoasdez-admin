@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Production deploy: pull master, install, build, back up + migrate the database when there are
-# pending migrations, then reload PM2 and check /healthz. Run it on the server from the repository,
-# as the user that owns the PM2 process:
+# pending migrations, then reload PM2 (the admin and the jobs worker) and check /healthz and the
+# worker heartbeat. Run it on the server from the repository, as the user that owns the PM2 process:
 #
 #   scripts/deploy.sh                deploy the latest master
 #   scripts/deploy.sh --force        redeploy even when master has nothing new (e.g. after a failure)
@@ -16,6 +16,7 @@
 set -Eeuo pipefail
 
 APP=domingoasdez-admin
+WORKER=domingoasdez-admin-worker
 BRANCH=master
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -88,6 +89,7 @@ main() {
 	migrate
 	swap_and_reload
 	health_check
+	worker_health_check
 
 	trap - ERR
 	printf '\n\033[1;32mDeployed %s (%s)\033[0m\n' "$(git rev-parse --short HEAD)" "$(git log -1 --format=%s)"
@@ -158,6 +160,7 @@ build() {
 	rm -rf build.next
 	BUILD_DIR=build.next npm run build
 	[[ -f build.next/index.js ]] || fail 'the build did not produce build.next/index.js'
+	[[ -f build.next/worker/index.js ]] || fail 'the build did not produce build.next/worker/index.js'
 }
 
 migrate() {
@@ -210,6 +213,23 @@ health_check() {
 	fail "$url did not answer OK. Serve the previous build with: scripts/deploy.sh --rollback"
 }
 
+worker_health_check() {
+	# The worker has no HTTP port: once connected to the database it writes .worker-heartbeat
+	# with its PID (src/worker/main.ts). The old process may have written one too, so match the PID.
+	step 'Checking the worker heartbeat'
+	local pid
+	for _ in $(seq 1 30); do
+		pid="$(pm2 pid "$WORKER" 2>/dev/null | tr -dc '0-9')"
+		if [[ -n "$pid" && "$pid" != 0 ]] && grep -qs "\"pid\":$pid[,}]" .worker-heartbeat; then
+			echo "OK (pid $pid)"
+			return
+		fi
+		sleep 1
+	done
+	pm2 logs "$WORKER" --lines 30 --nostream || true
+	fail "$WORKER did not start. Serve the previous build with: scripts/deploy.sh --rollback"
+}
+
 rollback() {
 	[[ -d build.prev ]] || fail 'there is no previous build (build.prev) to roll back to'
 	step 'Rolling back to the previous build'
@@ -219,6 +239,7 @@ rollback() {
 	mv build.next build.prev
 	pm2 startOrReload ecosystem.config.cjs --update-env
 	health_check
+	worker_health_check
 	echo 'Serving the previous build. Run --rollback again to switch back.'
 }
 

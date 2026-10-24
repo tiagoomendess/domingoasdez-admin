@@ -13,6 +13,8 @@ node_modules
 # scripts/deploy.sh
 /backups
 .deploy.lock
+# written by the worker (src/worker/main.ts), checked by scripts/deploy.sh
+/.worker-heartbeat
 
 # OS
 .DS_Store

@@ -39,6 +39,7 @@ export type AuditModel =
 	| 'ScoreReport'
 	| 'ScoreReportBan'
 	| 'Season'
+	| 'SocialMediaPost'
 	| 'Team'
 	| 'TeamAgent'
 	| 'TeamAgentHistory'
