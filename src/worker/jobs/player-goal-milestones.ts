@@ -10,7 +10,7 @@ import {
 	teams
 } from '#lib/server/db/schema.ts';
 import type { JobContext } from '../job.ts';
-import type { Logger } from '../log.ts';
+import type { Logger } from '#lib/server/logger.ts';
 import { renderMilestonePost, renderMilestoneStory } from '../images/goal-milestone.ts';
 import { DEFAULT_EMBLEM, loadImage, placeholder } from '../images/sources.ts';
 import { fileDay, imagePosts, storeTmpImage, type PlannedPost } from '../social/posts.ts';

@@ -6,11 +6,14 @@ import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
 import { socialMediaPosts } from '#lib/server/db/schema.ts';
 import { invalid, parseForm } from '#lib/server/forms.ts';
+import { logger } from '#lib/server/log.ts';
 import { mediaUrl } from '#lib/server/media.ts';
 import { deleteFile, STORAGE_URL_PREFIX } from '#lib/server/storage/index.ts';
 import { detectImageFormat, storeImage, type StoredImage } from '#lib/server/storage/uploads.ts';
 import { postErrors, postFormSchema } from './form';
 import type { SocialMediaPost } from './index';
+
+const log = logger.child('social-media-posts');
 
 /** Uploaded post images (kept until the post is deleted, unlike the jobs' /storage/tmp images). */
 export const SOCIAL_MEDIA_FOLDER = '/storage/social_media';
@@ -64,7 +67,7 @@ export async function savePost(
 		try {
 			stored = await storeImage(upload.bytes, upload.format, { folder: SOCIAL_MEDIA_FOLDER });
 		} catch (error) {
-			console.error('[social-media-posts] image upload failed:', error);
+			log.error('image upload failed', error);
 			return { failure: invalid({ image: [m.form_upload_failed()] }, values) };
 		}
 	}

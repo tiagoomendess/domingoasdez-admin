@@ -1,7 +1,10 @@
 import { getRequestEvent } from '$app/server';
 import { db } from '#lib/server/db/index.ts';
 import { audit as auditTable } from '#lib/server/db/schema.ts';
+import { logger } from '#lib/server/log.ts';
 import { buildAuditEntry, type AuditInput } from './audit-entry';
+
+const log = logger.child('audit');
 
 export type { AuditAction, AuditInput, AuditModel } from './audit-entry';
 
@@ -31,6 +34,6 @@ export async function audit(input: AuditInput & { userId?: number | null }): Pro
 		});
 		if (entry) await db.insert(auditTable).values(entry);
 	} catch (error) {
-		console.error('[audit] failed to write entry:', error);
+		log.error('failed to write entry', error);
 	}
 }

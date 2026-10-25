@@ -133,5 +133,10 @@ proxies the admin host to `PORT`, with `client_max_body_size` at least `BODY_SIZ
 site config is [nginx.conf](nginx.conf) (install steps at the top of the file).
 `GET /healthz` checks the app and the database for uptime monitoring.
 
+Logs: the admin, the worker and `domingoasdez-app` log JSON lines in production
+(`LOG_FORMAT=json` in `ecosystem.config.cjs`), and Grafana Alloy sends them, with the nginx and
+legacy Laravel logs, to Grafana Cloud. Setup once per server: [docs/logging.md](docs/logging.md)
+(config in [alloy/config.alloy](alloy/config.alloy)).
+
 CI (`.github/workflows/ci.yml`) runs lint, type check, unit/component tests and e2e tests on
 every push and pull request.

@@ -6,6 +6,7 @@ import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
 import { players } from '#lib/server/db/schema.ts';
 import { invalid, parseForm, type FieldErrors } from '#lib/server/forms.ts';
+import { logger } from '#lib/server/log.ts';
 import { insertImageMedia, isInMediaLibrary } from '#lib/server/media-library.ts';
 import { fetchPublicUrl } from '#lib/server/net.ts';
 import { IMAGE_LIMITS } from '#lib/server/storage/images.ts';
@@ -22,6 +23,8 @@ import { teamExists } from '#lib/server/teams/index.ts';
 import { recordTransfer } from '#lib/server/transfers.ts';
 import { PICTURE_URL_MAX_BYTES, pictureTags, playerColumns, playerFormSchema } from './form';
 import { isAssociationIdTaken, type Player } from './index';
+
+const log = logger.child('players');
 
 type Picture = { bytes: Uint8Array; format: ImageFormat };
 
@@ -45,7 +48,7 @@ export async function readPictureInput(
 		if (format === 'jpeg' || format === 'png' || format === 'webp') return { bytes, format };
 		errors.picture_url = [m.players_picture_url_not_image()];
 	} catch (error) {
-		console.warn('[pictures] picture link failed:', error);
+		log.warn('picture link failed', error);
 		errors.picture_url = [m.players_picture_url_failed()];
 	}
 	return null;
@@ -95,7 +98,7 @@ export async function savePlayer(formData: FormData, existing: Player | null, us
 				thumbnail: true
 			});
 		} catch (error) {
-			console.error('[players] picture upload failed:', error);
+			log.error('picture upload failed', error);
 			const field = data.picture ? 'picture' : 'picture_url';
 			return { failure: invalid({ [field]: [m.form_upload_failed()] }, values) };
 		}
@@ -173,6 +176,6 @@ async function deleteReplacedPicture(url: string, playerId: number) {
 		if (otherPlayer || (await isInMediaLibrary(db, url))) return;
 		await deleteFile(url);
 	} catch (error) {
-		console.warn('[players] could not clean up the replaced picture:', error);
+		log.warn('could not clean up the replaced picture', error);
 	}
 }

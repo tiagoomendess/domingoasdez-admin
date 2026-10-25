@@ -6,6 +6,7 @@ import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
 import { media, playerUpdateRequests, players } from '#lib/server/db/schema.ts';
 import { invalid, parseForm, type FieldErrors } from '#lib/server/forms.ts';
+import { logger } from '#lib/server/log.ts';
 import { insertImageMedia } from '#lib/server/media-library.ts';
 import { fileInUse, mediaUsage } from '#lib/server/media/index.ts';
 import { deleteMedia } from '#lib/server/media/save.ts';
@@ -31,6 +32,8 @@ import {
 	type RequestField
 } from './compare';
 import { requestPlayer, requestValues, type UpdateRequest } from './index';
+
+const log = logger.child('player-update-requests');
 
 /** Thrown inside the transaction when another admin reviewed the request first. */
 class AlreadyReviewed extends Error {}
@@ -64,7 +67,7 @@ async function storeRequestPicture(url: string): Promise<StoredImage | 'invalid'
 			thumbnail: true
 		});
 	} catch (error) {
-		console.warn('[update-requests] picture failed:', error);
+		log.warn('picture failed', error);
 		return 'failed';
 	}
 }
@@ -247,7 +250,7 @@ async function deleteOldPicture(url: string) {
 			await deleteFile(url);
 		}
 	} catch (error) {
-		console.warn('[update-requests] could not delete the old picture:', error);
+		log.warn('could not delete the old picture', error);
 	}
 }
 

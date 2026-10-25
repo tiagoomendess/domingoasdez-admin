@@ -6,6 +6,7 @@ import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
 import { articles } from '#lib/server/db/schema.ts';
 import { invalid, parseForm, type FieldErrors } from '#lib/server/forms.ts';
+import { logger } from '#lib/server/log.ts';
 import { insertImageMedia } from '#lib/server/media-library.ts';
 import { mediaUrl } from '#lib/server/media.ts';
 import { isBlankHtml, storedHtml } from '#lib/server/rich-text.ts';
@@ -25,6 +26,8 @@ import {
 } from './form';
 import { summarizeArticle } from './html';
 import { findCoverMedia, type Article } from './index';
+
+const log = logger.child('articles');
 
 /** Reads an uploaded JPEG or PNG (real format from the bytes). */
 const readImage = (file: File) => readUploadedImage(file, ['jpeg', 'png'] as const);
@@ -71,7 +74,7 @@ export async function saveArticle(formData: FormData, existing: Article | null, 
 		try {
 			stored = await storeImage(cover.bytes, cover.format, { thumbnail: true });
 		} catch (error) {
-			console.error('[articles] cover upload failed:', error);
+			log.error('cover upload failed', error);
 			return { failure: invalid({ cover: [m.form_upload_failed()] }, values) };
 		}
 	}
@@ -152,7 +155,7 @@ export async function uploadBodyImage(
 	try {
 		stored = await storeImage(image.bytes, image.format, { thumbnail: true });
 	} catch (error) {
-		console.error('[articles] text image upload failed:', error);
+		log.error('text image upload failed', error);
 		return { error: m.form_upload_failed() };
 	}
 

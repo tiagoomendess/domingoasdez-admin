@@ -1,10 +1,13 @@
 import { m } from '#lib/paraglide/messages.js';
+import { logger } from '#lib/server/log.ts';
 import {
 	readUploadedImage,
 	storeImage,
 	type ImageFormat,
 	type StoredImage
 } from '#lib/server/storage/uploads.ts';
+
+const log = logger.child('pictures');
 
 /**
  * Legacy `MediaController::storeImage()`: an uploaded picture (logo, cover…) checked against its
@@ -22,7 +25,7 @@ export async function storeUploadedPicture(
 	try {
 		return { stored: await storeImage(picture.bytes, picture.format, { thumbnail: true }) };
 	} catch (error) {
-		console.error('[pictures] upload failed:', error);
+		log.error('upload failed', error);
 		return { error: m.form_upload_failed() };
 	}
 }

@@ -29,7 +29,10 @@ import {
 	searchId
 } from '#lib/server/list.ts';
 import { mediaThumbnail } from '#lib/server/articles/index.ts';
+import { logger } from '#lib/server/log.ts';
 import type { MediaType } from './form';
+
+const log = logger.child('media');
 
 export type Media = typeof media.$inferSelect;
 
@@ -163,6 +166,6 @@ export async function deleteFileIfUnused(url: string | null | undefined): Promis
 	try {
 		if (fileInUse(await mediaUsage({ id: 0, url })) === 0) await deleteFile(url);
 	} catch (error) {
-		console.warn('[media] could not clean up a replaced file:', error);
+		log.warn('could not clean up a replaced file', error);
 	}
 }

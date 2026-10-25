@@ -5,12 +5,12 @@
 //   node build/worker/index.js list        jobs, schedule, ported, enabled
 //   node build/worker/index.js run <job>   run one job now and exit
 import { writeFile } from 'node:fs/promises';
-import { WORKER_DRY_RUN, WORKER_JOBS, WORKER_LOG_LEVEL } from '$app/env/private';
+import { LOG_FORMAT, WORKER_DRY_RUN, WORKER_JOBS, WORKER_LOG_LEVEL } from '$app/env/private';
 import { db } from '#lib/server/db/index.ts';
+import { createLogger } from '#lib/server/logger.ts';
 import { isPorted } from './job.ts';
 import { findJob, jobs, selectJobs } from './jobs/index.ts';
 import { acquireJobLock } from './lock.ts';
-import { createLogger } from './log.ts';
 import { runJob } from './runner.ts';
 import { startScheduler } from './scheduler.ts';
 
@@ -20,7 +20,8 @@ const HEARTBEAT_INTERVAL_MS = 30_000;
 /** Below PM2's kill_timeout (ecosystem.config.cjs), so the worker exits on its own terms. */
 const SHUTDOWN_TIMEOUT_MS = 50_000;
 
-const log = createLogger(WORKER_LOG_LEVEL);
+// One line per event on stdout/stderr, which PM2 collects (`pm2 logs domingoasdez-admin-worker`).
+const log = createLogger({ level: WORKER_LOG_LEVEL, format: LOG_FORMAT });
 
 function list() {
 	const enabled = new Set(safeSelection().map((job) => job.name));

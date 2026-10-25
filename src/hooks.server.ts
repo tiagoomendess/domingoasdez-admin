@@ -12,6 +12,8 @@ import {
 	sessionMatchesPassword
 } from '#lib/server/auth/session.ts';
 import { loadAdmin } from '#lib/server/auth/users.ts';
+import { logger } from '#lib/server/log.ts';
+import { logRequests } from '#lib/server/request-log.ts';
 
 /** Routes reachable without a session. Everything else requires a signed-in admin. */
 const PUBLIC_PATHS = new Set(['/login', '/healthz']);
@@ -85,11 +87,21 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 	return response;
 };
 
-export const handle = sequence(handleSecurityHeaders, handleLocale, handleAuth);
+export const handle = sequence(
+	logRequests(logger),
+	handleSecurityHeaders,
+	handleLocale,
+	handleAuth
+);
 
 export const handleError: HandleServerError = ({ kind, error, event }) => {
 	if (kind !== 'unknown') return;
-	const errorId = crypto.randomUUID();
-	console.error(`[error ${errorId}] ${event.request.method} ${event.url.pathname}`, error);
+	// The request's id: the error page shows it, the request line and this entry carry it.
+	const errorId = event.locals.requestId;
+	logger.error(
+		`${event.request.method} ${event.url.pathname} failed`,
+		{ requestId: errorId, route: event.route.id },
+		error
+	);
 	return { errorId };
 };

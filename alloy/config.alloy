@@ -1,0 +1,213 @@
+// Grafana Alloy on the production server: sends the logs of domingoasdez-app, the admin, the worker,
+// nginx and the legacy Laravel site to Grafana Cloud Logs. Setup, permissions and queries:
+// docs/logging.md. Installed as /etc/alloy/config.alloy; credentials and paths come from the
+// environment (/etc/default/alloy).
+//
+// Labels: service_name (domingoasdez-app, domingoasdez-admin, domingoasdez-admin-worker, nginx,
+// domingoasdez-legacy), level, host, and vhost / log for nginx. Everything else (requestId, userId,
+// scope, durationMs, …) stays in the JSON line: `| json` in LogQL.
+
+loki.write "grafana_cloud" {
+	endpoint {
+		// https://logs-prod-<region>.grafana.net/loki/api/v1/push
+		url = sys.env("GCLOUD_LOGS_URL")
+
+		basic_auth {
+			username = sys.env("GCLOUD_LOGS_USER")
+			password = sys.env("GCLOUD_LOGS_TOKEN")
+		}
+	}
+	external_labels = {
+		host = constants.hostname,
+	}
+}
+
+// --- Node apps under PM2 ------------------------------------------------------------------------
+// PM2 writes <app>-out.log (debug, info) and <app>-error.log (warn, error) per app. The apps log one
+// JSON object per line (LOG_FORMAT=json in their ecosystem.config.cjs).
+
+local.file_match "pm2" {
+	path_targets = [{
+		__path__         = sys.env("PM2_LOG_DIR") + "/domingoasdez-*.log",
+		// pm2-logrotate's copies (<app>-out__2026-10-25_00-00-00.log): read before the truncation.
+		__path_exclude__ = sys.env("PM2_LOG_DIR") + "/*__*.log",
+	}]
+}
+
+discovery.relabel "pm2" {
+	targets = local.file_match.pm2.targets
+
+	rule {
+		source_labels = ["__path__"]
+		regex         = ".*/(domingoasdez-(?:app|admin|admin-worker))-(?:out|error)\\.log"
+		target_label  = "service_name"
+	}
+
+	rule {
+		source_labels = ["__path__"]
+		regex         = ".*-(out|error)\\.log"
+		target_label  = "stream"
+	}
+}
+
+loki.source.file "pm2" {
+	targets    = discovery.relabel.pm2.output
+	forward_to = [loki.process.node.receiver]
+	// First start: skip what the files already hold (older lines are plain text).
+	tail_from_end = true
+}
+
+loki.process "node" {
+	forward_to = [loki.write.grafana_cloud.receiver]
+
+	// JSON entries are one line; a crash prints its stack trace over several (indented) lines.
+	stage.multiline {
+		firstline     = "^\\S"
+		max_wait_time = "3s"
+	}
+
+	// Lines that are not JSON (Node warnings, crashes, libraries) get the level of their stream.
+	stage.static_labels {
+		values = { level = "info" }
+	}
+
+	stage.match {
+		selector = "{stream=\"error\"}"
+
+		stage.static_labels {
+			values = { level = "error" }
+		}
+	}
+
+	stage.json {
+		expressions = { level = "", time = "" }
+	}
+
+	stage.labels {
+		values = { level = "" }
+	}
+
+	stage.timestamp {
+		source = "time"
+		format = "RFC3339"
+	}
+
+	stage.label_drop {
+		values = ["stream", "filename"]
+	}
+}
+
+// --- nginx ----------------------------------------------------------------------------------------
+// One folder per site (/var/log/nginx/<host>/access.log, error.log), plus the default files.
+
+local.file_match "nginx" {
+	path_targets = [
+		{ __path__ = "/var/log/nginx/*.log" },
+		{ __path__ = "/var/log/nginx/*/*.log" },
+	]
+}
+
+discovery.relabel "nginx" {
+	targets = local.file_match.nginx.targets
+
+	rule {
+		target_label = "service_name"
+		replacement  = "nginx"
+	}
+
+	rule {
+		source_labels = ["__path__"]
+		regex         = "/var/log/nginx/([^/]+)/[^/]+\\.log"
+		target_label  = "vhost"
+	}
+
+	rule {
+		source_labels = ["__path__"]
+		regex         = ".*/(access|error)\\.log"
+		target_label  = "log"
+	}
+}
+
+loki.source.file "nginx" {
+	targets       = discovery.relabel.nginx.output
+	forward_to    = [loki.process.nginx.receiver]
+	tail_from_end = true
+}
+
+loki.process "nginx" {
+	forward_to = [loki.write.grafana_cloud.receiver]
+
+	// 2026/10/25 10:00:00 [error] 1234#1234: *5 connect() failed …
+	stage.match {
+		selector = "{log=\"error\"}"
+
+		stage.regex {
+			expression = "^\\S+ \\S+ \\[(?P<level>\\w+)\\]"
+		}
+
+		stage.labels {
+			values = { level = "" }
+		}
+	}
+
+	stage.label_drop {
+		values = ["filename"]
+	}
+}
+
+// --- Legacy Laravel site ------------------------------------------------------------------------
+// LOG_CHANNEL=daily: storage/logs/laravel-YYYY-MM-DD.log. Empty LEGACY_LOG_DIR (legacy site on
+// another server) matches nothing.
+
+local.file_match "legacy" {
+	path_targets = [{
+		__path__     = sys.env("LEGACY_LOG_DIR") + "/laravel-*.log",
+		service_name = "domingoasdez-legacy",
+	}]
+}
+
+loki.source.file "legacy" {
+	// A new file every day: read from the start (stage.drop skips the older files on the first start).
+	targets    = local.file_match.legacy.targets
+	forward_to = [loki.process.legacy.receiver]
+}
+
+loki.process "legacy" {
+	forward_to = [loki.write.grafana_cloud.receiver]
+
+	// [2026-10-25 10:00:00] production.ERROR: message {"exception":"…"} followed by the stack trace.
+	stage.multiline {
+		firstline     = "^\\[\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\]"
+		max_wait_time = "3s"
+		max_lines     = 300
+	}
+
+	stage.regex {
+		expression = "^\\[(?P<time>[^\\]]+)\\] \\w+\\.(?P<level>[A-Z]+):"
+	}
+
+	// Laravel runs in UTC (config/app.php).
+	stage.timestamp {
+		source   = "time"
+		format   = "2006-01-02 15:04:05"
+		location = "UTC"
+	}
+
+	stage.template {
+		source   = "level"
+		template = "{{ ToLower .Value }}"
+	}
+
+	stage.labels {
+		values = { level = "" }
+	}
+
+	stage.drop {
+		older_than          = "24h"
+		drop_counter_reason = "too_old"
+	}
+
+	stage.label_drop {
+		values = ["filename"]
+	}
+}

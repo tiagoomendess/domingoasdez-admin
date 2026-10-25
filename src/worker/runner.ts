@@ -1,6 +1,6 @@
 import type { PortedJob } from './job.ts';
 import type { ReleaseLock } from './lock.ts';
-import type { Logger } from './log.ts';
+import type { Logger } from '#lib/server/logger.ts';
 
 export type RunOptions = {
 	log: Logger;
@@ -32,15 +32,17 @@ export async function runJob(job: PortedJob, options: RunOptions): Promise<RunOu
 	}
 
 	const started = performance.now();
-	const elapsed = () => `${Math.round(performance.now() - started)} ms`;
+	const durationMs = () => Math.round(performance.now() - started);
 	let outcome: RunOutcome = 'done';
 	try {
 		log.debug('started');
 		await job.run({ signal: options.signal, log, dryRun: options.dryRun });
-		log.debug(`finished in ${elapsed()}`);
+		const ms = durationMs();
+		log.debug(`finished in ${ms} ms`, { durationMs: ms });
 	} catch (error) {
 		outcome = 'failed';
-		log.error(`failed after ${elapsed()}`, error);
+		const ms = durationMs();
+		log.error(`failed after ${ms} ms`, { durationMs: ms }, error);
 	} finally {
 		try {
 			await release();

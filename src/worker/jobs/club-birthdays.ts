@@ -2,7 +2,7 @@ import { and, asc, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from '#lib/server/db/index.ts';
 import { clubs, playgrounds, socialMediaPosts } from '#lib/server/db/schema.ts';
 import type { JobContext } from '../job.ts';
-import type { Logger } from '../log.ts';
+import type { Logger } from '#lib/server/logger.ts';
 import { renderBirthdayPost, renderBirthdayStory } from '../images/club-birthday.ts';
 import { DEFAULT_EMBLEM, loadImage, placeholder } from '../images/sources.ts';
 import { fileDay, imagePosts, storeTmpImage, type PlannedPost } from '../social/posts.ts';

@@ -11,7 +11,7 @@ import {
 } from '$app/env/private';
 import { db } from '#lib/server/db/index.ts';
 import { emailOutbox } from '#lib/server/db/schema.ts';
-import type { Logger } from '../log.ts';
+import type { Logger } from '#lib/server/logger.ts';
 
 /**
  * The worker's emails, over the site's own SMTP server: a port of domingoasdez-app's

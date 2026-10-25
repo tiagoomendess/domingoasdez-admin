@@ -1,4 +1,4 @@
-import type { Logger } from './log.ts';
+import type { Logger } from '#lib/server/logger.ts';
 
 export type JobContext = {
 	/** Aborted when the worker shuts down: stop between items and leave the rest for the next run. */

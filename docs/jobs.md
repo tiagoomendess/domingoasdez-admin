@@ -55,8 +55,9 @@ scripts/deploy.sh
 - **Health.** After the database answers, the worker writes `.worker-heartbeat`
   (`{"pid":…,"at":…}`) and refreshes it every 30 s. The deploy waits for a heartbeat from the
   new PID, as it waits for `/healthz` from the admin.
-- **Logs.** One line per event to stdout/stderr (`pm2 logs domingoasdez-admin-worker`),
-  `WORKER_LOG_LEVEL=debug` for the legacy `Log::debug` detail.
+- **Logs.** One line per event to stdout/stderr (`pm2 logs domingoasdez-admin-worker`), JSON in
+  production for Grafana ([logging.md](logging.md)), with the job as `scope` and each run's
+  `durationMs`. `WORKER_LOG_LEVEL=debug` for the legacy `Log::debug` detail.
 
 ### Switches
 

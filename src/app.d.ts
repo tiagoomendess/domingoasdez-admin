@@ -10,6 +10,8 @@ declare global {
 		}
 		interface Locals {
 			user: AdminUser | null;
+			/** Set by the first `handle` (`logRequests`), logged with every entry of the request. */
+			requestId: string;
 		}
 		// interface PageData {}
 		// interface PageState {}

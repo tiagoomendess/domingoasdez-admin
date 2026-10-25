@@ -13,7 +13,9 @@ module.exports = {
 			autorestart: true,
 			max_memory_restart: '512M',
 			env: {
-				NODE_ENV: 'production'
+				NODE_ENV: 'production',
+				// JSON lines for Grafana Alloy (docs/logging.md). Set here, it wins over .env.
+				LOG_FORMAT: 'json'
 			}
 		},
 		{
@@ -31,7 +33,9 @@ module.exports = {
 			// On SIGINT the worker stops scheduling and waits up to 50 s for running jobs.
 			kill_timeout: 60_000,
 			env: {
-				NODE_ENV: 'production'
+				NODE_ENV: 'production',
+				// JSON lines for Grafana Alloy (docs/logging.md). Set here, it wins over .env.
+				LOG_FORMAT: 'json'
 			}
 		}
 	]

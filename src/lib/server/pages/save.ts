@@ -7,6 +7,7 @@ import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
 import { pages } from '#lib/server/db/schema.ts';
 import { invalid, parseForm, type FieldErrors } from '#lib/server/forms.ts';
+import { logger } from '#lib/server/log.ts';
 import { insertImageMedia, isInMediaLibrary } from '#lib/server/media-library.ts';
 import { isBlankHtml, storedHtml } from '#lib/server/rich-text.ts';
 import { deleteFile } from '#lib/server/storage/index.ts';
@@ -18,6 +19,8 @@ import {
 } from '#lib/server/storage/uploads.ts';
 import { BODY_MAX_BYTES, byteLength, pageFormSchema, pictureTags } from './form';
 import { isSlugTaken, type Page } from './index';
+
+const log = logger.child('pages');
 
 /**
  * Create (`existing` null) or update a page from the submitted form, with the legacy
@@ -58,7 +61,7 @@ export async function savePage(formData: FormData, existing: Page | null, user: 
 		try {
 			stored = await storeImage(picture.bytes, picture.format, { thumbnail: true });
 		} catch (error) {
-			console.error('[pages] picture upload failed:', error);
+			log.error('picture upload failed', error);
 			return { failure: invalid({ picture: [m.form_upload_failed()] }, values) };
 		}
 	}
@@ -132,6 +135,6 @@ async function deleteReplacedPicture(url: string, pageId: number) {
 		if (otherPage || (await isInMediaLibrary(db, url))) return;
 		await deleteFile(url);
 	} catch (error) {
-		console.warn('[pages] could not clean up the replaced picture:', error);
+		log.warn('could not clean up the replaced picture', error);
 	}
 }

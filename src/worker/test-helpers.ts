@@ -1,4 +1,4 @@
-import type { Logger } from './log.ts';
+import type { Logger } from '#lib/server/logger.ts';
 
 /** A logger that records `level: [scope] message` lines instead of printing them. */
 export function recordingLogger(

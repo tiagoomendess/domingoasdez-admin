@@ -246,6 +246,13 @@ never from the browser. Store with `latLngPoint` (`POINT(lat lng)`).
 - `SESSION_SECRET` must be unique per environment (≥ 32 chars). Use an R2 token scoped to the
   uploads bucket only.
 
+## Logging
+
+Server code logs through `logger.child('<module>')` from `#lib/server/log.ts`, never `console.*`:
+one JSON object per line in production (`LOG_FORMAT=json`), with a line per request and the
+request id and user on every entry. Grafana Alloy ships the logs of the three apps, nginx and the
+legacy site to Grafana Cloud. Details, setup and queries: [logging.md](logging.md).
+
 ## Known cross-app caveats
 
 - The legacy site caches some pages in its **file cache** (`today_games_cache`, `live_matches`,

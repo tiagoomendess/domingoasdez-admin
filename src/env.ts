@@ -16,6 +16,14 @@ function flag(defaultValue: boolean) {
 	};
 }
 
+function logLevel(value: string | undefined) {
+	const level = optionalString(value)?.toLowerCase() ?? 'info';
+	if (level !== 'debug' && level !== 'info' && level !== 'warn' && level !== 'error') {
+		throw new Error('Must be debug, info, warn or error');
+	}
+	return level;
+}
+
 /** An http(s) origin or base URL, returned without a trailing slash. */
 function httpUrl(fallback?: string) {
 	return (value: string | undefined) => {
@@ -174,12 +182,20 @@ export const variables = defineEnvVars({
 	},
 	WORKER_LOG_LEVEL: {
 		description: 'Worker log level: debug, info, warn or error.',
+		schema: logLevel
+	},
+	LOG_LEVEL: {
+		description:
+			'Admin log level: debug (also the /healthz checks), info (one line per request), warn or error.',
+		schema: logLevel
+	},
+	LOG_FORMAT: {
+		description:
+			'Log lines of the admin and the worker: "text" (readable, development) or "json" (one object per line for Grafana Alloy, docs/logging.md). ecosystem.config.cjs sets json in production.',
 		schema: (value) => {
-			const level = optionalString(value)?.toLowerCase() ?? 'info';
-			if (level !== 'debug' && level !== 'info' && level !== 'warn' && level !== 'error') {
-				throw new Error('Must be debug, info, warn or error');
-			}
-			return level;
+			const format = optionalString(value)?.toLowerCase() ?? 'text';
+			if (format !== 'text' && format !== 'json') throw new Error('Must be text or json');
+			return format;
 		}
 	}
 });

@@ -1,4 +1,4 @@
-import type { Logger } from '../log.ts';
+import type { Logger } from '#lib/server/logger.ts';
 
 /**
  * Port of the legacy `App\Services\SocialPoster`: the Facebook page and Instagram account

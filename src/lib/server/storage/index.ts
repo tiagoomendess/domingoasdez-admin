@@ -4,8 +4,11 @@ import {
 	ListObjectsV2Command,
 	PutObjectCommand
 } from '@aws-sdk/client-s3';
+import { logger } from '#lib/server/log.ts';
 import { cacheControlFor, isStoredUrl, newStorageUrl, storageKey } from './paths';
 import { r2 } from './r2';
+
+const log = logger.child('storage');
 
 export * from './paths';
 
@@ -82,6 +85,6 @@ export async function deleteFile(url: string | null | undefined): Promise<void> 
 		const { client, bucket } = r2();
 		await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: storageKey(url) }));
 	} catch (error) {
-		console.warn(`[storage] failed to delete ${url}:`, error);
+		log.warn('could not delete a file', { url }, error);
 	}
 }

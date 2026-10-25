@@ -6,6 +6,7 @@ import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
 import { articles, media } from '#lib/server/db/schema.ts';
 import { invalid, parseForm, type FieldErrors } from '#lib/server/forms.ts';
+import { logger } from '#lib/server/log.ts';
 import { deleteFile, storeFile, STORAGE_FOLDERS } from '#lib/server/storage/index.ts';
 import { detectImageFormat, storeImage } from '#lib/server/storage/uploads.ts';
 import {
@@ -19,6 +20,8 @@ import {
 } from './form';
 import { fileInUse, mediaUsage, type Media } from './index';
 import { makeThumbnail } from './thumbnails';
+
+const log = logger.child('media');
 
 /** What a stored file looks like before its `media` row exists. */
 type Prepared = { url: string; thumbnailUrl: string | null; type: MediaType; files: string[] };
@@ -104,7 +107,7 @@ export async function createMedia(formData: FormData, user: AdminUser) {
 	try {
 		prepared = data.source === 'url' ? await prepareLink(data.url!) : await prepareFile(data.file!);
 	} catch (error) {
-		console.error('[media] upload or thumbnail failed:', error);
+		log.error('upload or thumbnail failed', error);
 		const field = data.source === 'url' ? 'url' : 'file';
 		return {
 			failure: invalid(

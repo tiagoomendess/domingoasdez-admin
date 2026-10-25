@@ -1,7 +1,10 @@
 import { json } from '@sveltejs/kit';
 import { requireAnyPermission } from '#lib/server/auth/guard.ts';
 import { searchPlaces } from '#lib/server/geocode.ts';
+import { logger } from '#lib/server/log.ts';
 import type { RequestHandler } from './$types';
+
+const log = logger.child('geocode');
 
 /** Address search for the playground map (`?q=`), through Nominatim on the server. */
 export const GET: RequestHandler = async ({ url }) => {
@@ -10,7 +13,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	try {
 		return json({ places: await searchPlaces(q) });
 	} catch (error) {
-		console.warn('[geocode] search failed:', error);
+		log.warn('search failed', error);
 		return json({ places: [], error: true }, { status: 502 });
 	}
 };

@@ -6,6 +6,7 @@ import { changedColumns } from '#lib/server/db/changes.ts';
 import { db } from '#lib/server/db/index.ts';
 import { clubs } from '#lib/server/db/schema.ts';
 import { invalid, parseForm, type FieldErrors } from '#lib/server/forms.ts';
+import { logger } from '#lib/server/log.ts';
 import { insertImageMedia, isInMediaLibrary } from '#lib/server/media-library.ts';
 import { deleteFile } from '#lib/server/storage/index.ts';
 import { IMAGE_LIMITS } from '#lib/server/storage/images.ts';
@@ -18,6 +19,8 @@ import {
 import { userExists } from '#lib/server/users.ts';
 import { clubColumns, clubFormSchema, emblemTags } from './form';
 import { isClubNameTaken, type Club } from './index';
+
+const log = logger.child('clubs');
 
 /**
  * Create (`existing` null) or update a club from the submitted form, with the legacy
@@ -59,7 +62,7 @@ export async function saveClub(formData: FormData, existing: Club | null, user: 
 				thumbnail: true
 			});
 		} catch (error) {
-			console.error('[clubs] emblem upload failed:', error);
+			log.error('emblem upload failed', error);
 			return { failure: invalid({ emblem: [m.form_upload_failed()] }, values) };
 		}
 	}
@@ -123,6 +126,6 @@ async function deleteReplacedEmblem(url: string, clubId: number) {
 		if (otherClub || (await isInMediaLibrary(db, url))) return;
 		await deleteFile(url);
 	} catch (error) {
-		console.warn('[clubs] could not clean up the replaced emblem:', error);
+		log.warn('could not clean up the replaced emblem', error);
 	}
 }
