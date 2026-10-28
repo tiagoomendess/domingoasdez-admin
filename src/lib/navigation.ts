@@ -102,7 +102,9 @@ export const navigation: NavGroup[] = [
 			todayItem,
 			{ label: m.nav_games, href: '/games', permission: 'games' },
 			{ label: m.nav_game_comments, href: '/game-comments', permission: 'games' },
-			{ label: m.nav_goals, href: '/goals', permission: 'goals' }
+			{ label: m.nav_goals, href: '/goals', permission: 'goals' },
+			// Not in the legacy backoffice: the stadium screens of domingoasdez-app.
+			{ label: m.nav_placards, href: '/placards', permission: 'placards' }
 		]
 	},
 	{

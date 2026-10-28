@@ -1,4 +1,5 @@
 import { isPorted, type JobDefinition, type PortedJob } from '../job.ts';
+import * as cleanupPlacards from './cleanup-placards.ts';
 import * as cleanupTmpFolder from './cleanup-tmp-folder.ts';
 import * as clubBirthdays from './club-birthdays.ts';
 import * as deleteNotVerifiedAccounts from './delete-not-verified-accounts.ts';
@@ -85,6 +86,13 @@ export const jobs: readonly JobDefinition[] = [
 		legacy: 'CleanupTmpFolder',
 		schedule: '0 4 * * *',
 		run: cleanupTmpFolder.run
+	},
+	{
+		// New, no legacy job: the stadium screens (placards) of domingoasdez-app.
+		name: 'cleanup-placards',
+		legacy: '',
+		schedule: '30 4 * * *',
+		run: cleanupPlacards.run
 	},
 	{
 		name: 'player-goal-milestones',

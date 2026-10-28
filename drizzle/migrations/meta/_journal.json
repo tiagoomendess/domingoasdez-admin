@@ -43,6 +43,13 @@
       "when": 1793219491763,
       "tag": "0005_birth_date_datetime",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1793224446761,
+      "tag": "0006_placards",
+      "breakpoints": true
     }
   ]
 }

@@ -23,6 +23,7 @@ import {
 	foreignKey,
 	index,
 	int,
+	json,
 	longtext,
 	mysqlEnum,
 	mysqlTable,
@@ -513,6 +514,63 @@ export const passwordResets = mysqlTable(
 export const permissions = mysqlTable('permissions', {
 	id: int('id', { unsigned: true }).autoincrement().primaryKey(),
 	name: varchar('name', { length: 155 }).notNull(),
+	...timestamps
+});
+
+/**
+ * Log of what happened on a stadium screen (`placards`): pairing, every controller action, the
+ * screen being released. Written by domingoasdez-app; `type` is the action name.
+ */
+export const placardEvents = mysqlTable(
+	'placard_events',
+	{
+		id: bigint('id', { mode: 'number', unsigned: true }).autoincrement().primaryKey(),
+		placardId: int('placard_id', { unsigned: true })
+			.notNull()
+			.references(() => placards.id, { onDelete: 'cascade' }),
+		gameId: int('game_id', { unsigned: true }).references(() => games.id, {
+			onDelete: 'set null'
+		}),
+		userId: int('user_id', { unsigned: true }).references(() => users.id, {
+			onDelete: 'set null'
+		}),
+		type: varchar('type', { length: 30 }).notNull(),
+		payload: json('payload'),
+		createdAt: timestamp('created_at').$defaultFn(() => new Date())
+	},
+	(table) => [
+		index('placard_events_placard_id_created_at_index').on(table.placardId, table.createdAt)
+	]
+);
+
+/**
+ * Stadium screens ("placard eletrónico"), one per TV browser, holding the live state the screen
+ * shows. Owned by domingoasdez-app: the TV keeps a token in a cookie (only its sha256 is stored),
+ * shows `pairing_code` as a QR, and a signed-in phone pairs it with a game and controls it.
+ * - `scene` is what the screen shows: `pairing` or `match` (more to come, e.g. ad breaks)
+ * - the clock is server time: `clock_elapsed_ms` plus, while running, the time since
+ *   `clock_running_since`
+ * - `version` goes up on every change; the screen polls with it
+ */
+export const placards = mysqlTable('placards', {
+	id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+	deviceTokenHash: char('device_token_hash', { length: 64 }).notNull().unique(),
+	pairingCode: char('pairing_code', { length: 6 }).unique(),
+	pairingCodeExpiresAt: datetime('pairing_code_expires_at'),
+	scene: varchar('scene', { length: 20 }).notNull().default('pairing'),
+	gameId: int('game_id', { unsigned: true }).references(() => games.id, { onDelete: 'set null' }),
+	controllerUserId: int('controller_user_id', { unsigned: true }).references(() => users.id, {
+		onDelete: 'set null'
+	}),
+	homeScore: tinyint('home_score', { unsigned: true }).notNull().default(0),
+	awayScore: tinyint('away_score', { unsigned: true }).notNull().default(0),
+	period: varchar('period', { length: 20 }).notNull().default('first_half'),
+	clockElapsedMs: int('clock_elapsed_ms', { unsigned: true }).notNull().default(0),
+	clockRunningSince: datetime('clock_running_since', { fsp: 3 }),
+	version: int('version', { unsigned: true }).notNull().default(0),
+	pairedAt: datetime('paired_at'),
+	lastActionAt: datetime('last_action_at'),
+	lastSeenAt: datetime('last_seen_at'),
 	...timestamps
 });
 

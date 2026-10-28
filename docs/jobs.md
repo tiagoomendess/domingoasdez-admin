@@ -102,6 +102,12 @@ Schedules are UTC, as in the legacy `Kernel`.
 | `schedule-social-media`        | `ScheduleSocialMedia`       | `15 5 * * *`   | Match day: the day's `social_media_posts` timeline (static images from `social_media.*` variables, match stories)      | Images, R2 tmp                      |
 | `process-score-report-bans`    | `ProcessScoreReportBans`    | `59 22 * * *`  | Website reports above the final score (or flagged fake) → 15-day ban, karma, email                                     | Mail                                |
 
+**New jobs** (no legacy class, so nothing to cut over; add them to `WORKER_JOBS` when deployed):
+
+| Job                | Cron (UTC)   | What it does                                                                                                                                   |
+| ------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cleanup-placards` | `30 4 * * *` | Deletes the stadium screens (`placards`, with their events) of domingoasdez-app not seen for 30 days, and `placard_events` older than 180 days |
+
 Not scheduled, not ported: the artisan commands `GptInfo`, `GptArticles`, `GptGames` (no longer
 used), `UploadStorageToR2` and `PopulatePlayerTeamId` (one-off migrations, done).
 

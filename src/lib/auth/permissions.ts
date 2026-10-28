@@ -47,6 +47,9 @@ export const PERMISSIONS = [
 	'permissions',
 	'permissions.create',
 	'permissions.edit',
+	// New in this admin (no legacy section): the stadium screens of domingoasdez-app.
+	'placards',
+	'placards.edit',
 	'player_update_requests',
 	'player_update_requests.create',
 	'player_update_requests.edit',

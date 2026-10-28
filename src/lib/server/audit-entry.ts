@@ -34,6 +34,8 @@ export type AuditModel =
 	| 'Page'
 	| 'Partner'
 	| 'Permission'
+	/** A stadium screen of domingoasdez-app (`placards`), released from the admin. */
+	| 'Placard'
 	| 'Player'
 	| 'PlayerUpdateRequest'
 	| 'Playground'
