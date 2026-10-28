@@ -9,6 +9,10 @@ The worker build copies this folder to `build/worker/assets/` (`vite.worker.conf
   overlays (1280×720).
 - `images/story_watermark.png`: match story overlay (1080×1920).
 - `images/poll_default.png`: poll image background (1280×720).
+- `images/article_post_base.png`: background of the admin's "Post on Facebook" picture of an
+  article (1080×1350). The admin bundles it, the fonts and the 16:9 placeholders itself
+  (`#lib/server/articles/facebook.ts`, read with SvelteKit's `read()`): its build has no copy
+  of this folder.
 - `images/16_9_placeholder_<n>.jpg`, `images/1_1_placeholder_<n>.jpg`: legacy `Media::getPlaceholder()`
   backgrounds, picked by the last digit of an id.
 - `images/default-emblem.png`: legacy `custom.default_emblem`, for clubs without an emblem.

@@ -72,3 +72,14 @@ export function coverTags(form: Pick<ArticleForm, 'title' | 'tags'>): string[] {
 export function bodyImageTags(fileName: string): string[] {
 	return ['ckeditor-upload', fileName.replaceAll(',', ' ').slice(0, 100)];
 }
+
+/** Legacy `postOnFacebook`: an optional message, up to 280 characters. */
+export const facebookPostSchema = z.object({ message: optionalText(280) });
+
+/**
+ * Legacy caption of the article's Facebook post: the message, or the title without one, and a
+ * pointer to the link, commented under the post.
+ */
+export function facebookCaption(message: string | null, title: string): string {
+	return `${message || title}\n\n🔗 Link nos comentários`;
+}

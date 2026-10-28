@@ -65,7 +65,7 @@ export function titleCase(name: string): string {
 		);
 }
 
-/** Calendar date ↔ the `birth_date` TIMESTAMP (`YYYY-MM-DD 00:00:00`). */
+/** Calendar date ↔ the `birth_date` DATETIME (`YYYY-MM-DD 00:00:00`). */
 export const birthDateValue = (date: string | null) => (date ? `${date} 00:00:00` : null);
 export const birthDateInput = (stored: string | null) => stored?.slice(0, 10) ?? '';
 

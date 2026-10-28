@@ -17,12 +17,22 @@ import { assetPath } from '../assets.ts';
  */
 
 export const FONTS = { regular: 'DadRobotoRegular', black: 'DadRobotoBlack' } as const;
+export const FONT_FILES = { regular: 'Roboto-Regular.ttf', black: 'Roboto-Black.ttf' } as const;
 
 let fontsRegistered = false;
-function registerFonts() {
+
+/**
+ * Registers the fonts once, from the worker's assets, or from `files`: the admin's build has no
+ * assets folder, so it passes the copies it bundles (`#lib/server/articles/facebook.ts`). Throws
+ * when one is missing rather than drawing the texts in a fallback font.
+ */
+export function registerFonts(files?: Record<keyof typeof FONTS, Uint8Array>) {
 	if (fontsRegistered) return;
-	GlobalFonts.registerFromPath(assetPath('fonts', 'Roboto-Regular.ttf'), FONTS.regular);
-	GlobalFonts.registerFromPath(assetPath('fonts', 'Roboto-Black.ttf'), FONTS.black);
+	for (const key of ['regular', 'black'] as const) {
+		if (files) GlobalFonts.register(Buffer.from(files[key]), FONTS[key]);
+		else GlobalFonts.registerFromPath(assetPath('fonts', FONT_FILES[key]), FONTS[key]);
+		if (!GlobalFonts.has(FONTS[key])) throw new Error(`Font ${FONT_FILES[key]} not loaded`);
+	}
 	fontsRegistered = true;
 }
 

@@ -6,6 +6,17 @@
 			"runtimeExecutable": "npm",
 			"runtimeArgs": ["run", "dev"],
 			"port": 5173
+		},
+		{
+			"name": "dev-fake-graph",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["run", "dev"],
+			"port": 5173,
+			"env": {
+				"FB_GRAPH_URL": "http://127.0.0.1:8787",
+				"FB_PAGE_ID": "FAKEPAGE",
+				"FB_PAGE_ACCESS_TOKEN": "fake-page-token"
+			}
 		}
 	]
 }

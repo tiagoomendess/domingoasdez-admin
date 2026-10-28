@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+		A,
 		Badge,
 		Table,
 		TableBody,
@@ -8,8 +9,9 @@
 		TableHead,
 		TableHeadCell
 	} from 'flowbite-svelte';
-	import { ImageOutline } from 'flowbite-svelte-icons';
+	import { FacebookSolid, ImageOutline } from 'flowbite-svelte-icons';
 	import { resolve } from '$app/paths';
+	import { can } from '#lib/auth/permissions.ts';
 	import DateTime from '#lib/components/DateTime.svelte';
 	import CreateButton from '#lib/components/list/CreateButton.svelte';
 	import EmptyState from '#lib/components/list/EmptyState.svelte';
@@ -20,9 +22,12 @@
 	import { formatDate } from '#lib/format.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
+	import FacebookPostButton from './FacebookPostButton.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+
+	const canPostOnFacebook = $derived(can(data.user.permissions, 'articles.create'));
 </script>
 
 <PageHeader title={m.articles_title()}>
@@ -54,6 +59,7 @@
 			/>
 			<TableHeadCell class="w-24"><span class="sr-only">{m.articles_cover()}</span></TableHeadCell>
 			<SortHeader state={data.list} column="title" label={m.articles_title_field()} />
+			<TableHeadCell class="w-14"><span class="sr-only">Facebook</span></TableHeadCell>
 			<TableHeadCell class="w-40">{m.articles_author()}</TableHeadCell>
 			<SortHeader
 				state={data.list}
@@ -101,6 +107,23 @@
 						</a>
 						{#if !article.visible}
 							<Badge color="gray" class="ms-2">{m.common_hidden()}</Badge>
+						{/if}
+					</TableBodyCell>
+					<!-- Legacy "f" button: post once, then a link to the post. -->
+					<TableBodyCell class="py-2">
+						{#if article.facebookPostUrl}
+							<A
+								href={article.facebookPostUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="rounded-lg p-2 text-[#1877f2] hover:bg-gray-100 hover:no-underline focus:ring-2 focus:ring-primary-300 focus:outline-none dark:text-blue-400 dark:hover:bg-gray-700"
+								title={m.articles_facebook_open()}
+								aria-label={m.articles_facebook_open()}
+							>
+								<FacebookSolid class="size-4" aria-hidden="true" />
+							</A>
+						{:else if canPostOnFacebook}
+							<FacebookPostButton compact {article} />
 						{/if}
 					</TableBodyCell>
 					<TableBodyCell class="text-gray-600 dark:text-gray-400"

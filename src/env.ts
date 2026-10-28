@@ -151,20 +151,23 @@ export const variables = defineEnvVars({
 	},
 	FB_GRAPH_URL: {
 		description:
-			"Graph API origin of the worker's social media posts. Only changed to point local tests at a fake Graph API, so nothing gets published.",
+			"Graph API origin of the social media posts (the worker's, and the admin's article posts). Only changed to point local tests at a fake Graph API, so nothing gets published.",
 		schema: httpUrl('https://graph.facebook.com')
 	},
 	FB_GRAPH_VERSION: {
-		description: "Facebook Graph API version of the worker's social media posts (legacy: v24.0).",
+		description: 'Facebook Graph API version of the social media posts (legacy: v24.0).',
 		schema: (value) => {
 			const version = optionalString(value) ?? 'v24.0';
 			if (!/^v\d+\.\d+$/.test(version)) throw new Error('Must look like v24.0');
 			return version;
 		}
 	},
-	FB_PAGE_ID: { description: 'Facebook page the worker posts to.', schema: optionalString },
+	FB_PAGE_ID: {
+		description: 'Facebook page the worker and the admin (articles) post to.',
+		schema: optionalString
+	},
 	FB_PAGE_ACCESS_TOKEN: {
-		description: 'Page access token: Facebook posts and stories.',
+		description: "Page access token: Facebook posts and stories, and the admin's article posts.",
 		schema: optionalString
 	},
 	FB_SYSTEM_USER_TOKEN: {

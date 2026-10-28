@@ -8,6 +8,8 @@ import {
 	cleanTags,
 	cleanTitle,
 	coverTags,
+	facebookCaption,
+	facebookPostSchema,
 	IMAGE_MAX_BYTES,
 	TEXT_MAX_LENGTH
 } from './form';
@@ -121,5 +123,26 @@ describe('legacy clean-ups', () => {
 			'Final da Taça'
 		]);
 		expect(bodyImageTags('foto, final.jpg').join(',')).toBe('ckeditor-upload,foto  final.jpg');
+	});
+});
+
+describe('facebookPostSchema', () => {
+	it('takes an optional message of up to 280 characters', () => {
+		const empty = parseForm(facebookPostSchema, formData({ message: '  ' }));
+		expect(empty.success && empty.data).toEqual({ message: null });
+		const message = parseForm(facebookPostSchema, formData({ message: ' Já saiu! ' }));
+		expect(message.success && message.data).toEqual({ message: 'Já saiu!' });
+		expect(parseForm(facebookPostSchema, formData({ message: 'x'.repeat(281) })).success).toBe(
+			false
+		);
+	});
+});
+
+describe('facebookCaption', () => {
+	it('is the message, or the title, and the pointer to the link (legacy)', () => {
+		expect(facebookCaption(null, 'Final da Taça')).toBe('Final da Taça\n\n🔗 Link nos comentários');
+		expect(facebookCaption('Já saiu!', 'Final da Taça')).toBe(
+			'Já saiu!\n\n🔗 Link nos comentários'
+		);
 	});
 });

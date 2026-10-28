@@ -18,8 +18,12 @@ export type AuditAction =
 /** Legacy Eloquent class names (the `model` column). */
 export type AuditModel =
 	| 'Article'
+	/** Legacy backoffice download of an article's Facebook picture (a `view`). */
+	| 'ArticleSocialImage'
 	| 'Club'
 	| 'Competition'
+	/** An article posted on the Facebook page (`{ article_id, post_id }`). */
+	| 'FacebookPost'
 	| 'Game'
 	| 'GameComment'
 	| 'GameGroup'

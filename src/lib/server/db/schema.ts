@@ -534,8 +534,11 @@ export const playerUpdateRequests = mysqlTable(
 		phone: varchar('phone', { length: 155 }),
 		email: varchar('email', { length: 155 }),
 		facebookProfile: text('facebook_profile'),
-		/** Calendar date stored as `YYYY-MM-DD 00:00:00`; kept as a string to avoid timezone shifts. */
-		birthDate: timestamp('birth_date', { mode: 'string' }),
+		/**
+		 * Calendar date stored as `YYYY-MM-DD 00:00:00`; kept as a string to avoid timezone shifts.
+		 * DATETIME, not TIMESTAMP: TIMESTAMP can't hold dates before 1970.
+		 */
+		birthDate: datetime('birth_date', { mode: 'string' }),
 		position: mysqlEnum('position', playerPositions),
 		obs: text('obs'),
 		status: mysqlEnum('status', playerUpdateRequestStatuses).notNull().default('pending'),
@@ -568,8 +571,11 @@ export const players = mysqlTable(
 		email: varchar('email', { length: 155 }),
 		facebookProfile: text('facebook_profile'),
 		obs: text('obs'),
-		/** Calendar date stored as `YYYY-MM-DD 00:00:00`; kept as a string to avoid timezone shifts. */
-		birthDate: timestamp('birth_date', { mode: 'string' }),
+		/**
+		 * Calendar date stored as `YYYY-MM-DD 00:00:00`; kept as a string to avoid timezone shifts.
+		 * DATETIME, not TIMESTAMP: TIMESTAMP can't hold dates before 1970.
+		 */
+		birthDate: datetime('birth_date', { mode: 'string' }),
 		position: mysqlEnum('position', playerPositions).notNull().default('none'),
 		teamId: int('team_id', { unsigned: true }).references(() => teams.id, {
 			onDelete: 'set null'

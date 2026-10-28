@@ -12,6 +12,7 @@ import {
 } from '#lib/server/list.ts';
 import { mediaUrl } from '#lib/server/media.ts';
 import type { OptionsQuery } from '#lib/server/options.ts';
+import { slugify } from '#lib/slug.ts';
 
 export type Article = typeof articles.$inferSelect;
 type Media = typeof media.$inferSelect;
@@ -44,6 +45,7 @@ export async function listArticles(url: URL) {
 			title: articles.title,
 			date: articles.date,
 			visible: articles.visible,
+			facebookPostId: articles.facebookPostId,
 			updatedAt: articles.updatedAt,
 			author: users.name,
 			cover: media
@@ -57,9 +59,10 @@ export async function listArticles(url: URL) {
 		.offset(pageOffset(state));
 
 	return {
-		rows: rows.map(({ cover, date, ...row }) => ({
+		rows: rows.map(({ cover, date, facebookPostId, ...row }) => ({
 			...row,
 			date: date.toISOString().slice(0, 10),
+			facebookPostUrl: facebookPostUrl(facebookPostId),
 			cover: cover ? mediaThumbnail(cover) : null
 		})),
 		list: state
@@ -79,6 +82,19 @@ export async function authorName(userId: number): Promise<string | null> {
 		.limit(1);
 	return user?.name ?? null;
 }
+
+/**
+ * The article on the public site (`domingoasdez-app` `articleHref`, legacy `getPublicUrl()`):
+ * `/noticias/<yyyy>/<mm>/<dd>/<slug of the title>`, the date's UTC calendar day.
+ */
+export function articlePath(article: Pick<Article, 'date' | 'title'>) {
+	const [year, month, day] = article.date.toISOString().slice(0, 10).split('-');
+	return `/noticias/${year}/${month}/${day}/${slugify(article.title)}`;
+}
+
+/** The article's post on Facebook: page post ids (`<page>_<post>`) open it. */
+export const facebookPostUrl = (postId: string | null) =>
+	postId ? `https://www.facebook.com/${encodeURIComponent(postId)}` : null;
 
 /** Display URL of a media item's picture: its thumbnail, or the image itself. */
 export function mediaThumbnail(item: Pick<Media, 'url' | 'thumbnailUrl' | 'mediaType'>) {

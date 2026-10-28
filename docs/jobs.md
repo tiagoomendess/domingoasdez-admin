@@ -138,7 +138,8 @@ used), `UploadStorageToR2` and `PopulatePlayerTeamId` (one-off migrations, done)
 - **Social media** (`src/worker/social/graph.ts`, done). `createSocialPoster()` ports
   `SocialPoster` on the Graph API with `fetch`: the same endpoints and parameters for Facebook
   page stories (photo and video, two phases), text and photo posts, photo upload and comments
-  (the legacy backoffice's "post article"), and Instagram containers (image, reel, story photo and
+  (the legacy backoffice's "post article", used by the admin's `#lib/server/articles/facebook.ts`,
+  which never comments: the page lacks the permission, the link is commented by hand), and Instagram containers (image, reel, story photo and
   video) published after waiting for them to be processed. Settings: `FB_PAGE_ID`,
   `FB_PAGE_ACCESS_TOKEN`, `FB_SYSTEM_USER_TOKEN`, `IG_USER_ID`, `FB_GRAPH_VERSION` (legacy
   hard-coded `v24.0`), in `src/env.ts`. Tested against a fake Graph API (`graph.spec.ts`: every
