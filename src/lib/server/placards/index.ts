@@ -168,6 +168,12 @@ export async function releasePlacard(id: number, userId: number) {
 				clockElapsedMs: 0,
 				clockRunningSince: null,
 				pairedAt: null,
+				overlayType: null,
+				overlayPayload: null,
+				overlayStartedAt: null,
+				overlayEndsAt: null,
+				lastAdAt: null,
+				nextAdId: null,
 				lastActionAt: now,
 				version: sql`${placards.version} + 1`
 			})

@@ -133,6 +133,41 @@ export const audit = mysqlTable(
 	]
 );
 
+/**
+ * A club's ad spots on its stadium screen (domingoasdez-app `/clubes/{club}/placard`), at most 5,
+ * shown in `position` order. `image` is the uploaded file as is (≤ 1 MB, GIFs allowed).
+ */
+export const clubPlacardAds = mysqlTable(
+	'club_placard_ads',
+	{
+		id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+		clubId: int('club_id', { unsigned: true })
+			.notNull()
+			.references(() => clubs.id, { onDelete: 'cascade' }),
+		image: varchar('image', { length: 255 }).notNull(),
+		durationSeconds: tinyint('duration_seconds', { unsigned: true }).notNull().default(10),
+		position: tinyint('position', { unsigned: true }).notNull().default(0),
+		...timestamps
+	},
+	(table) => [index('club_placard_ads_club_id_position_index').on(table.clubId, table.position)]
+);
+
+/**
+ * A club's stadium screen look, used whenever the club plays at home: text and background
+ * colours (`#rrggbb`) and a 16:9 background image. Null means the default.
+ */
+export const clubPlacardSettings = mysqlTable('club_placard_settings', {
+	id: int('id', { unsigned: true }).autoincrement().primaryKey(),
+	clubId: int('club_id', { unsigned: true })
+		.notNull()
+		.unique()
+		.references(() => clubs.id, { onDelete: 'cascade' }),
+	textColor: char('text_color', { length: 7 }),
+	backgroundColor: char('background_color', { length: 7 }),
+	backgroundImage: varchar('background_image', { length: 255 }),
+	...timestamps
+});
+
 export const clubs = mysqlTable('clubs', {
 	id: int('id', { unsigned: true }).autoincrement().primaryKey(),
 	name: varchar('name', { length: 155 }).notNull(),
@@ -571,6 +606,20 @@ export const placards = mysqlTable('placards', {
 	pairedAt: datetime('paired_at'),
 	lastActionAt: datetime('last_action_at'),
 	lastSeenAt: datetime('last_seen_at'),
+	/**
+	 * What shows on top of the scene for a while: `ad` for now (substitutions and messages to
+	 * come), with its data in `overlay_payload`. Ignored once `overlay_ends_at` has passed.
+	 */
+	overlayType: varchar('overlay_type', { length: 20 }),
+	overlayPayload: json('overlay_payload'),
+	overlayStartedAt: datetime('overlay_started_at', { fsp: 3 }),
+	overlayEndsAt: datetime('overlay_ends_at', { fsp: 3 }),
+	/** Start of the last ad break: the next one waits 2 minutes. */
+	lastAdAt: datetime('last_ad_at', { fsp: 3 }),
+	/** The ad the controller has preselected next (rotates by `club_placard_ads.position`). */
+	nextAdId: int('next_ad_id', { unsigned: true }).references(() => clubPlacardAds.id, {
+		onDelete: 'set null'
+	}),
 	...timestamps
 });
 
